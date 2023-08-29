@@ -4,6 +4,8 @@
 
 Introducing Emblem Creator, a user friendly tool that allows you to effortlessly import your own images into ACVI to use as emblems on your Armored Core and share online. The tool leverages data from the [Geometrize library](https://github.com/Tw1ddle/geometrize-haxe) which decomposes arbitrary images into geometric primitives. This vector format is then converted to the game's native emblem format and imported into the game. It's easy to use, it's fast, give it a try!
 
+🡺 **[Download the latest release!](https://github.com/pawREP/ACVIEmblemCreator/releases/latest)**
+
 <div align="center" >
 <img align="center" width="160" height="160" src="./assets/pika.jpg"> 🡺
 <img align="center" width="220" height="220" src="./assets/pika.gif" loop="0"> 🡺
@@ -13,7 +15,7 @@ Introducing Emblem Creator, a user friendly tool that allows you to effortlessly
 ## How to use:
   *Before you do anything, make a backup of your save file. This tool imports emblems directly into your save file and, while unlikely, save file corruption is always a possibility. Better save than sorry. You can find your save file under `%AppData%\Roaming\ArmoredCore6\{SteamID}\AC60000.sl2`.*
 
-With that out of the way, get the latest release version here and follow the instructions below.
+With that out of the way, get the latest release version **[here](https://github.com/pawREP/ACVIEmblemCreator/releases/latest)** and follow the instructions below.
 
 ### Image conversion
 
