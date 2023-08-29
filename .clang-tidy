@@ -1,0 +1,27 @@
+Checks: '*,    
+        -altera-*,	        
+        -android-*,	     
+        -fuchsia-*,   
+        -linuxkernel-*,	    
+        -llvm-*,	            
+        -llvmlibc-*,	           
+        -mpi-*,	            
+        -objc-*,	            
+        -openmp-*,	        
+        -zircon-*,	
+
+        -cert-dcl21-cpp, 
+        -cppcoreguidelines-pro-type-reinterpret-cast,
+        -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+        -cppcoreguidelines-pro-type-union-access,
+        -google-readability-todo,
+        -google-readability-braces-around-statements,
+        -hicpp-braces-around-statements,
+        -modernize-use-trailing-return-type,
+        -readability-implicit-bool-conversion,
+        -readability-braces-around-statements,
+        -readability-qualified-auto,
+        -readability-identifier-length,
+        '
+
+WarningsAsErrors: '*'
