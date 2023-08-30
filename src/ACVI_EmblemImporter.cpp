@@ -77,23 +77,15 @@ namespace {
         return {};
     }
 
-    ErrorOr<void> packBinder(const std::filesystem::path& path) {
-        auto yabberPath = path.parent_path() / "Yabber/Yabber.exe";
-        if(!std::filesystem::exists(yabberPath))
-            return Error{ "Yabber.exe was not found in the current working directory." };
-
-        return openProcessSync(yabberPath.wstring().c_str(), path.wstring().c_str());
+    ErrorOr<void> packBinder(const std::filesystem::path& yabberPath, const std::filesystem::path& binderPath) {
+        return openProcessSync(yabberPath.wstring().c_str(), binderPath.wstring().c_str());
     }
 
-    ErrorOr<void> unpackBinder(const std::filesystem::path& path) {
-        auto yabberPath = path.parent_path() / "Yabber/Yabber.exe";
-        if(!std::filesystem::exists(yabberPath))
-            return Error{ "Yabber.exe was not found in the current working directory." };
-
-        PROPAGATE_IF_ERROR(openProcessSync(yabberPath.wstring().c_str(), path.wstring().c_str()));
+    ErrorOr<void> unpackBinder(const std::filesystem::path& yabberPath, const std::filesystem::path& binderPath) {
+        PROPAGATE_IF_ERROR(openProcessSync(yabberPath.wstring().c_str(), binderPath.wstring().c_str()));
 
         // Sanity check unpacking result
-        auto unpackedSl2Dir = (path.parent_path() / path.stem()).concat("-sl2");
+        auto unpackedSl2Dir = (binderPath.parent_path() / binderPath.stem()).concat("-sl2");
         if(!std::filesystem::exists(unpackedSl2Dir) || !std::filesystem::is_directory(unpackedSl2Dir))
             return Error{ "Unexpected Yabber unpacking result" };
 
@@ -130,6 +122,10 @@ namespace {
         if(sl2Path.empty())
             return Error{ "Invalid arguments: No sl2 file provided" };
 
+        std::filesystem::path yabberPath = std::filesystem::path{ args[0] }.parent_path() / "Yabber\\Yabber.exe";
+        if(!std::filesystem::exists(yabberPath))
+            return Error{ "Yabber.exe was not found in the current working directory." };
+
         // Create backup save
         {
             auto backupFilePath = sl2Path;
@@ -138,7 +134,7 @@ namespace {
         }
 
         // Unpack sl2 binder
-        PROPAGATE_IF_ERROR(unpackBinder(sl2Path));
+        PROPAGATE_IF_ERROR(unpackBinder(yabberPath, sl2Path));
 
         auto unpackedSl2DirPath = sl2Path.parent_path() / sl2Path.stem().concat("-sl2");
         SCOPE_EXIT {
@@ -182,7 +178,7 @@ namespace {
         PROPAGATE_IF_ERROR(writeBinaryFile(userData7FilePath, userData7Data));
 
         // Pack sl2
-        PROPAGATE_IF_ERROR(packBinder(unpackedSl2DirPath));
+        PROPAGATE_IF_ERROR(packBinder(yabberPath, unpackedSl2DirPath));
 
         return {};
     }
