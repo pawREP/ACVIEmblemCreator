@@ -133,7 +133,7 @@ namespace {
         // Create backup save
         {
             auto backupFilePath = sl2Path;
-            backupFilePath.concat(".bak");
+            backupFilePath.concat(".backup");
             std::filesystem::copy_file(sl2Path, backupFilePath, std::filesystem::copy_options::overwrite_existing);
         }
 
