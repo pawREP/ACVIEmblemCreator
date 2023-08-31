@@ -1,0 +1,85 @@
+//------------------------------------------------
+//--- 010 Editor v14.0 Binary Template
+//
+//      File: EMBC
+//   Authors: B3
+//   Version: 1.0
+//   Purpose: Emblem data for Armored Core VI
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+typedef struct {
+    byte r;
+    byte g;
+    byte b;
+    byte a;
+} RGBA;
+
+enum <short> LayerType { 
+    GroupLayer = 0,
+    SingleLayer = 1,
+};
+
+typedef struct {
+   short sublayerCount;
+   LayerType type;    
+} LayerGroupHeader;
+
+typedef struct{
+    short decalId; // 0x4000 bit encodes 'inverted' toggle
+    short posX;    // scaled by 0x10
+    short posY;    // scaled by 0x10
+    short scaleX;  // scaled by 0x10
+    short scaleY;  // scaled by 0x10
+    short angle;   // 0-360
+    RGBA rgba;
+    short maskMode; //0x000 default, 0x0040 toggle once, 0x0080 toggle twice
+    short pad;
+} LayerData;
+
+struct LayerGroup;
+
+typedef struct {
+    LayerGroupHeader header;
+    if(header.type == SingleLayer){
+        Assert(header.sublayerCount == 3); // weird
+        LayerData layer;
+    }else if(header.type == GroupLayer){
+        LayerData layer[header.sublayerCount];
+        LayerGroup layerGroup;
+    }else{
+        Assert(false);
+    }
+} LayerGroup<optimize=false>;
+
+typedef struct {
+    short unk0; Assert(unk0 == 0);
+    short layerGroupCount;
+    LayerGroup layerGroups[layerGroupCount];
+} Image <bgcolor=Random(0xFFFFFF), optimize=false>;
+
+typedef struct {
+    char name[0x10];
+    uint64 size;
+    uint64 pad;
+    if(name == "Image"){
+        Image image;
+    }else if(name == "Category"){
+        ubyte userSlot;       
+    }else if(name == "UgcID"){
+        Assert(size == 2);
+        short ugcId; Assert(ugcId == 0);     
+    }else if(name == "DateTime"){
+        Assert(size == 0x10);
+        ubyte dateTime[size];
+    }else {
+        Assert(size == 0);
+    }
+} Block <bgcolor=Random(0xFFFFFF), optimize=false>;
+
+while(!FEof()){
+    Block block;
+}
