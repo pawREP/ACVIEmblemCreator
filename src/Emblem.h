@@ -21,17 +21,23 @@ public:
         EllipseSolid = 102,
     };
 
+    enum class LayerType : short {
+        GroupLayer  = 0,
+        SingleLayer = 1,
+    };
+
     struct LayerDesc {
-        short unk0 = 3;
-        short unk1 = 1;
-        DecalType decalId; // 0x4000 bit encodes inverted toggle
+        short subLayerCount = 3;
+        LayerType type      = LayerType::SingleLayer;
+        DecalType decalId; // 0x4000 bit encodes 'inverted' toggle
         short posX;        // scaled by 0x10
         short posY;        // scaled by 0x10
         short scaleX;      // scaled by 0x10
         short scaleY;      // scaled by 0x10
-        short angle;
+        short angle;       // 0-360
         RGBA rgba;
-        int toggledMask = 0; // 0x00400000 when toggled, probably multiple flags
+        short toggledMask = 0; // 0x0000 default, 0x0040 toggle once, 0x0080 toggle twice
+        short _padding{};
     };
     static_assert(sizeof(LayerDesc) == 0x18);
     static_assert(std::is_trivially_copyable_v<LayerDesc>);
