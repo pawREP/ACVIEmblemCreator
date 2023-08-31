@@ -1,9 +1,9 @@
 #pragma once
+#include "Define.h"
 #include <expected>
 #include <format>
 #include <string>
 #include <string_view>
-#include "Define.h"
 
 #define UNWRAP_OR_PROPAGATE_(expectedValue, expected, varName) \
     auto varName = expected;                                   \
@@ -54,5 +54,5 @@ private:
     std::string msg;
 };
 
-template <typename T, typename E = Error>
+template <typename T = void, typename E = Error>
 using ErrorOr = std::expected<T, E>;
