@@ -180,6 +180,14 @@ namespace {
         // Pack sl2
         PROPAGATE_IF_ERROR(packBinder(yabberPath, unpackedSl2DirPath));
 
+        // Delete backup created by Yabber to avoid confusion with our own backup
+        {
+            auto yabberBackupPath = sl2Path;
+            yabberBackupPath.concat(".bak");
+            if(std::filesystem::exists(yabberBackupPath) && std::filesystem::is_regular_file(yabberBackupPath))
+                std::filesystem::remove(yabberBackupPath);
+        }
+
         return {};
     }
 
