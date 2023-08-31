@@ -165,7 +165,8 @@ class EmbcBuilder {
 private:
     struct BlockHeader {
         char name[0x10]{};
-        uint64_t dataSize{};
+        uint32_t dataSize{};
+        uint32_t unk{};
         uint64_t _paddding{};
     };
 
