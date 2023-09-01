@@ -33,6 +33,16 @@ public:
         stream.write(reinterpret_cast<const char*>(&t), sizeof(T));
     }
 
+    template <>
+    void write<std::string>(const std::string& str) {
+        write(str.c_str(), str.size() + 1);
+    }
+
+    template <>
+    void write<std::wstring>(const std::wstring& str) {
+        write(str.c_str(), sizeof(std::decay_t<decltype(str)>::value_type) * (str.size() + 1));
+    }
+
     template <typename T>
     void write(const T* arr, int size) {
         static_assert(std::is_trivially_copyable_v<T>);
