@@ -55,6 +55,13 @@ ErrorOr<UserDataContainer> UserDataContainer::deserialize(const std::vector<uint
         PROPAGATE_IF_ERROR(fileOr);
         container.files_.push_back(std::move(fileOr).value());
     }
+    int extraFileCount{};
+    inputStream.read((char*)&extraFileCount, sizeof(extraFileCount));
+    if(extraFileCount) {
+        auto fileOr = UserDataFile::deserialize(inputStream);
+        PROPAGATE_IF_ERROR(fileOr);
+        container.extraFiles_.push_back(std::move(fileOr).value());
+    }
 
     return container;
 }
@@ -69,10 +76,16 @@ std::vector<uint8_t> UserDataContainer::serialize() const {
     std::ospanstream ostream({ (char*)buffer.data(), buffer.size() }, std::ios::out | std::ios::binary);
     ostream.write((char*)IV, sizeof(IV));
     ostream.write((char*)&header, sizeof(Header));
+
     for(const auto& file : files_)
         file.serialize(ostream);
 
-    // checsum
+    int extraFilesCount = extraFiles_.size();
+    ostream.write((char*)&extraFilesCount, sizeof(extraFilesCount));
+    for(const auto& file : extraFiles_)
+        file.serialize(ostream);
+
+    // checksum
     auto checksum = md5Digest(buffer.data() + 0x14, header.size - 0x10);
     ostream.seekp(sizeof(header.size) + header.size);
     ostream.write((char*)checksum.data(), sizeof(checksum));
@@ -97,6 +110,10 @@ void UserDataContainer::eraseFile(int64_t index) {
 
 const std::vector<UserDataFile>& UserDataContainer::files() const {
     return files_;
+}
+
+const std::vector<UserDataFile>& UserDataContainer::extraFiles() const {
+    return extraFiles_;
 }
 
 ErrorOr<UserDataFile> UserDataFile::deserialize(std::istream& stream) {

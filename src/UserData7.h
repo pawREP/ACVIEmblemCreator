@@ -46,6 +46,7 @@ public:
     void eraseFile(int64_t index);
 
     const std::vector<UserDataFile>& files() const;
+    const std::vector<UserDataFile>& extraFiles() const;
 
 private:
     UserDataContainer() = default;
@@ -61,4 +62,5 @@ private:
     } header{};
 
     std::vector<UserDataFile> files_;
+    std::vector<UserDataFile> extraFiles_; // Those files are not referenced in the header file count. Downloaded emblem files occupy those slots
 };
