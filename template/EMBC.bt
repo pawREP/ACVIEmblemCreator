@@ -63,7 +63,8 @@ typedef struct {
 
 typedef struct {
     char name[0x10];
-    uint64 size;
+    uint32 size;
+    uint32 unk;
     uint64 pad;
     switch(name){
     case "Image":
