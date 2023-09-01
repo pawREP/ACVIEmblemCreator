@@ -65,17 +65,25 @@ typedef struct {
     char name[0x10];
     uint64 size;
     uint64 pad;
-    if(name == "Image"){
+    switch(name){
+    case "Image":
         Image image;
-    }else if(name == "Category"){
-        ubyte userSlot;       
-    }else if(name == "UgcID"){
-        Assert(size == 2);
-        short ugcId; Assert(ugcId == 0);     
-    }else if(name == "DateTime"){
+        break;
+    case"Category":
+        ubyte userSlot;     
+        break;  
+    case"CreatorID":
+        Assert(size == 0x08);
+        int64 steamId;
+        break;
+    case"UgcID":
+        wstring ugcId;  
+        break;
+    case"DateTime":
         Assert(size == 0x10);
         ubyte dateTime[size];
-    }else {
+        break;
+    default:
         Assert(size == 0);
     }
 } Block <bgcolor=Random(0xFFFFFF), optimize=false>;
