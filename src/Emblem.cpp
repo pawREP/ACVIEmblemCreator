@@ -7,8 +7,25 @@ namespace {
     enum class GeometrizeShapeType {
         Rectangle        = 0,
         RotatedRectangle = 1,
+        Triangle         = 2,
+        Ellipse          = 3,
         RotatedEllipse   = 4,
+        Circle           = 5,
     };
+
+    bool shapeHasAngle(GeometrizeShapeType shape) {
+        switch(shape) {
+        case GeometrizeShapeType::Circle:
+        case GeometrizeShapeType::Ellipse:
+        case GeometrizeShapeType::Rectangle:
+            return false;
+        case GeometrizeShapeType::RotatedRectangle:
+        case GeometrizeShapeType::RotatedEllipse:
+            return true;
+        default:
+            assert(false);
+        }
+    }
 
     struct BoundingBox {
         int minX = std::numeric_limits<int>::max();
@@ -84,6 +101,11 @@ namespace {
                     return false;
 
                 switch(entry["type"].get<GeometrizeShapeType>()) {
+                case GeometrizeShapeType::Circle:
+                    if(entry["data"].size() != 3)
+                        return false;
+                    break;
+                case GeometrizeShapeType::Ellipse:
                 case GeometrizeShapeType::Rectangle: {
                     if(entry["data"].size() != 4)
                         return false;
@@ -121,12 +143,13 @@ ErrorOr<Emblem> Emblem::fromJson(const nlohmann::json& json) {
         layerDesc.rgba.g = shape["color"][1];
         layerDesc.rgba.b = shape["color"][2];
         layerDesc.rgba.a = 100.f * shape["color"][3].get<float>() / 255.f;
+        layerDesc.angle  = 0;
 
-        switch(shape["type"].get<GeometrizeShapeType>()) {
+        auto type = shape["type"].get<GeometrizeShapeType>();
+        switch(type) {
         case GeometrizeShapeType::Rectangle:
         case GeometrizeShapeType::RotatedRectangle: {
             layerDesc.decalId = DecalType::SquareSolid;
-            layerDesc.angle   = 0;
 
             auto minX = (shape["data"][0].get<float>() * scaleX - 128) * 0x10;
             auto minY = (shape["data"][1].get<float>() * scaleY - 128) * 0x10;
@@ -137,23 +160,32 @@ ErrorOr<Emblem> Emblem::fromJson(const nlohmann::json& json) {
             layerDesc.posY   = std::midpoint(minY, maxY);
             layerDesc.scaleX = (maxX - minX);
             layerDesc.scaleY = (maxY - minY);
-
-            if(shape["type"].get<GeometrizeShapeType>() == GeometrizeShapeType::RotatedRectangle)
-                layerDesc.angle = shape["data"][4];
-
         } break;
+        case GeometrizeShapeType::Circle:
+        case GeometrizeShapeType::Ellipse:
         case GeometrizeShapeType::RotatedEllipse:
             layerDesc.decalId = DecalType::EllipseSolid;
             layerDesc.posX    = (shape["data"][0] * scaleX - 128) * 0x10;
             layerDesc.posY    = (shape["data"][1] * scaleY - 128) * 0x10;
             layerDesc.scaleX  = shape["data"][2] * scaleX * 0x10 * 2;
-            layerDesc.scaleY  = shape["data"][3] * scaleY * 0x10 * 2;
-            layerDesc.angle   = shape["data"][4];
+            switch(type) {
+            case GeometrizeShapeType::Circle:
+                layerDesc.scaleY = layerDesc.scaleX;
+                break;
+            case GeometrizeShapeType::Ellipse:
+            case GeometrizeShapeType::RotatedEllipse:
+                layerDesc.scaleY = shape["data"][3] * scaleY * 0x10 * 2;
+                break;
+            }
             break;
         default:
             return Error{ "Invalid GeometrizeShapeType: {}\n"
                           "This tool supports only Rectangles, rotated Rectangles and rotated ellipses",
                           (int)shape["type"].get<GeometrizeShapeType>() };
+        }
+
+        if(shapeHasAngle(type)){
+            layerDesc.angle = shape["data"][4];
         }
 
         emblem.layers.push_back(layerDesc);

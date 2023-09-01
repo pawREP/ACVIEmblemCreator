@@ -28,7 +28,7 @@ public:
     };
 
     struct LayerDesc {
-        short subLayerCount = 3;
+        short subLayerCount = 3; // This value is fixed for LayerType::SingleLayer
         LayerType type      = LayerType::SingleLayer;
         DecalType decalId; // 0x4000 bit encodes 'inverted' toggle
         short posX;        // scaled by 0x10
