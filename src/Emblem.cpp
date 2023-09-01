@@ -1,5 +1,5 @@
 #include "Emblem.h"
-#include "BinaryWriter.h"
+#include "BlockContainerBuilder.h"
 #include "json.h"
 
 namespace {
@@ -161,75 +161,23 @@ ErrorOr<Emblem> Emblem::fromJson(const nlohmann::json& json) {
     return emblem;
 }
 
-class EmbcBuilder {
-private:
-    struct BlockHeader {
-        char name[0x10]{};
-        uint32_t dataSize{};
-        uint32_t unk{};
-        uint64_t _paddding{};
-    };
-
-public:
-    EmbcBuilder() {
-        addBlock("---- begin ----");
-    }
-
-    void addBlock(const std::string& name) {
-        assert(name.size() < 0x10);
-
-        BlockHeader header;
-        std::copy(name.begin(), name.end(), header.name);
-
-        writer.write(header);
-    }
-
-    template <typename T>
-    void addBlock(const std::string& name, const T& data) {
-        static_assert(std::is_trivially_copyable_v<T>);
-        static_assert(!std::is_pointer_v<T>);
-
-        addBlock(name, reinterpret_cast<const uint8_t*>(&data), sizeof(T));
-    }
-
-    template <typename T>
-    void addBlock(const std::string& name, const T* data, int64_t size) {
-        static_assert(std::is_trivially_copyable_v<T>);
-
-        BlockHeader header;
-        assert(name.size() < 0x10);
-        std::copy(name.begin(), name.end(), header.name);
-        header.dataSize = size * sizeof(T);
-
-        writer.write(header);
-        writer.write(data, size);
-    }
-
-
-    std::vector<uint8_t> build() {
-        addBlock("----  end  ----");
-        return writer.release();
-    }
-
-private:
-    SequentialBinaryWriter writer;
-};
-
 std::vector<uint8_t> Emblem::serialize() const {
-    EmbcBuilder builder;
+    BlockContainerBuilder builder;
+    builder.beginContainer();
+    {
+        builder.writeBlock("Category", category);
+        builder.writeBlock("UgcID", ugcId);
+        builder.writeBlock("DateTime", dateTime, sizeof(dateTime));
 
-    builder.addBlock("Category", category);
-    builder.addBlock("UgcID", ugcId);
-    builder.addBlock("DateTime", dateTime, sizeof(dateTime));
-
-    // TODO: This is a bit ugly since some last second changed turned up after the API was already done. Could be reworked.
-    std::vector<uint8_t> layerData(layers.size() * sizeof(LayerDesc) + 4);
-    short unk        = 0;
-    short layerCount = layers.size();
-    std::memcpy(layerData.data() + 0x00, &unk, sizeof(unk));
-    std::memcpy(layerData.data() + 0x02, &layerCount, sizeof(layerCount));
-    std::memcpy(layerData.data() + 0x04, layers.data(), layers.size() * sizeof(LayerDesc));
-    builder.addBlock("Image", layerData.data(), layerData.size());
+        builder.beginBlock("Image");
+        {
+            builder.write(static_cast<short>(0));
+            builder.write(static_cast<short>(layers.size()));
+            builder.write(layers.data(), layers.size());
+        }
+        builder.endBlock();
+    }
+    builder.endContainer();
 
     return builder.build();
 }
