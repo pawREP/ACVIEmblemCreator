@@ -62,17 +62,29 @@ namespace {
         if(!ShellExecuteEx(&ShExecInfo))
             return Error{ "ShellExecuteEx failed with error: {}", GetLastError() };
 
+        SCOPE_EXIT {
+            CloseHandle(ShExecInfo.hProcess);
+        };
+
         assert(ShExecInfo.hProcess);
-        auto waitResult = WaitForSingleObject(ShExecInfo.hProcess, INFINITE);
-        assert(waitResult == WAIT_OBJECT_0);
+        auto waitResult = WaitForSingleObject(ShExecInfo.hProcess, 3000); // Waiting 3 seconds should be plenty
+
+        switch(waitResult) {
+        case WAIT_OBJECT_0:
+            break;
+        default:
+            TerminateProcess(ShExecInfo.hProcess, 1);
+            return Error{ "Save file (un)packing failed with wait result {}. This is likely caused by a lack of write "
+                          "permissions in the "
+                          "save file folder or a because the save file itself is not overwritable. Try copying the sl2 "
+                          "file to another location before trying again.",
+                          waitResult };
+        }
 
         DWORD exitCode{};
         GetExitCodeProcess(ShExecInfo.hProcess, &exitCode);
-        if(exitCode != 0) {
-            CloseHandle(ShExecInfo.hProcess);
-            return Error{ "ShellExecuteEx target process exited with code: {}", exitCode };
-        }
-        CloseHandle(ShExecInfo.hProcess);
+        if(exitCode != 0)
+            return Error{ "ShellExecuteEx target process exited unexpectedly with code: {}", exitCode };
 
         return {};
     }
