@@ -165,8 +165,15 @@ std::vector<uint8_t> Emblem::serialize() const {
     BlockContainerBuilder builder;
     builder.beginContainer();
     {
-        builder.writeBlock("Category", category);
+        if(creatorId) // TODO: Downloaded emblems use the 0x0B category. The creatorId and category should have an invariant
+                      // in the class but since we don't implement deserialization at the moment or generation of "downloaded" emblems it's fine to have it like this for the time being.
+            builder.writeBlock("Category", (uint8_t)0x0B);
+        else
+            builder.writeBlock("Category", category);
+
         builder.writeBlock("UgcID", ugcId);
+        if(creatorId)
+            builder.writeBlock("CreatorID", creatorId.value());
         builder.writeBlock("DateTime", dateTime, sizeof(dateTime));
 
         builder.beginBlock("Image");
