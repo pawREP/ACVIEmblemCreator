@@ -89,11 +89,21 @@ namespace {
         return {};
     }
 
+    bool pathHasSpaces(const std::filesystem::path& path) {
+        return path.wstring().contains(' ');
+    }
+
     ErrorOr<void> packBinder(const std::filesystem::path& yabberPath, const std::filesystem::path& binderPath) {
+        if(pathHasSpaces(binderPath))
+            return Error{ "Save file (.sl2) path can't contain spaces" };
+
         return openProcessSync(yabberPath.wstring().c_str(), binderPath.wstring().c_str());
     }
 
     ErrorOr<void> unpackBinder(const std::filesystem::path& yabberPath, const std::filesystem::path& binderPath) {
+        if(pathHasSpaces(binderPath))
+            return Error{ "Save file (.sl2) path can't contain spaces" };
+
         PROPAGATE_IF_ERROR(openProcessSync(yabberPath.wstring().c_str(), binderPath.wstring().c_str()));
 
         // Sanity check unpacking result
