@@ -104,7 +104,7 @@ namespace {
         return {};
     }
 
-    ErrorOr<void> Main(const std::vector<std::string_view>& args) {
+    ErrorOr<void> Main(const std::vector<std::wstring_view>& args) {
 
         // Validate arguments
         if(args.size() < 3)
@@ -205,10 +205,10 @@ namespace {
 
 } // namespace
 
-int main(int argc, char* argv[]) {
-    std::vector<std::string_view> arguments;
+int wmain(int argc, wchar_t* argv[]) {
+    std::vector<std::wstring_view> arguments;
     for(int i = 0; i < argc; ++i)
-        arguments.emplace_back(argv[i], strlen(argv[i]));
+        arguments.emplace_back(argv[i], wcslen(argv[i]));
 
     auto result = Main(arguments);
     if(!result) {
