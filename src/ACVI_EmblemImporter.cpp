@@ -76,7 +76,7 @@ namespace {
             TerminateProcess(ShExecInfo.hProcess, 1);
             return Error{ "Save file (un)packing failed with wait result {}. This is likely caused by a lack of write "
                           "permissions in the "
-                          "save file folder or a because the save file itself is not overwritable. Try copying the sl2 "
+                          "save file folder or because the save file itself is not overwritable. Try copying the sl2 "
                           "file to another location before trying again.",
                           waitResult };
         }
