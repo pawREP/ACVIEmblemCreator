@@ -186,6 +186,15 @@ namespace {
 
             // TODO: Should get some arg parser instead of doing this
             uint32_t chromaKey = 0;
+            {
+                auto it = std::find_if(args.begin(), args.end(),
+                                       [](const std::wstring_view& str) { return str == L"--chroma-key"; });
+                if(it != args.end()) {
+                    assert(++it != args.end());
+                    chromaKey = wcstoull(it->data(), nullptr, 10);
+                }
+            }
+
             UNWRAP_OR_PROPAGATE(emblems, Emblem::fromJson(json, chromaKey));
             for(const auto& emblem : emblems) {
                 auto serializedEmblem = emblem.serialize();
