@@ -127,15 +127,13 @@ namespace {
 
         for(int i = 1; i < args.size(); ++i) {
             std::filesystem::path path{ args[i] };
-            if(!std::filesystem::is_regular_file(path) || !path.has_extension())
-                return Error{ "Invalid argument: {}", path.generic_string() };
+            if(path.empty() || !std::filesystem::is_regular_file(path) || !path.has_extension())
+                continue;
 
             if(path.extension() == ".sl2") {
                 sl2Path = path;
             } else if(path.extension() == ".json") {
                 emblemJsonFilePaths.push_back(path);
-            } else {
-                return Error{ "Invalid argument: {}", path.generic_string() };
             }
         }
 
