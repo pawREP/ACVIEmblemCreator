@@ -3,10 +3,20 @@
 #include "json.h"
 #include <cinttypes>
 #include <optional>
+#include <vector>
+
+struct BoundingBox {
+    int minX = std::numeric_limits<int>::max();
+    int minY = std::numeric_limits<int>::max();
+    int maxX = std::numeric_limits<int>::min();
+    int maxY = std::numeric_limits<int>::min();
+
+    static BoundingBox fromJson(const nlohmann::json& json);
+};
 
 class Emblem {
 public:
-    static ErrorOr<Emblem> fromJson(const nlohmann::json& json);
+    static ErrorOr<std::vector<Emblem>> fromJson(const nlohmann::json& json, uint32_t chromaKey);
 
     std::vector<uint8_t> serialize() const;
 
@@ -54,4 +64,6 @@ public:
 
 private:
     Emblem() = default;
+
+    static ErrorOr<Emblem> fromJson(const nlohmann::json& json, const BoundingBox& bb);
 };

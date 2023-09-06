@@ -184,11 +184,15 @@ namespace {
 
             ifs.close();
 
-            UNWRAP_OR_PROPAGATE(emblem, Emblem::fromJson(json));
-            auto serializedEmblem = emblem.serialize();
+            // TODO: Should get some arg parser instead of doing this
+            uint32_t chromaKey = 0;
+            UNWRAP_OR_PROPAGATE(emblems, Emblem::fromJson(json, chromaKey));
+            for(const auto& emblem : emblems) {
+                auto serializedEmblem = emblem.serialize();
 
-            UNWRAP_OR_PROPAGATE(userDataFile, UserDataFile::create("EMBC", serializedEmblem));
-            userData7.insertFile(std::move(userDataFile));
+                UNWRAP_OR_PROPAGATE(userDataFile, UserDataFile::create("EMBC", serializedEmblem));
+                userData7.insertFile(std::move(userDataFile));
+            }
         }
 
         // Serialize UserData007
