@@ -1,3 +1,9 @@
 [submodule "thirdparty/zlib"]
 	path = libEmblem/thirdparty/zlib
 	url = https://github.com/madler/zlib.git
+[submodule "gui/thirdparty/DirectXTK"]
+	path = gui/thirdparty/DirectXTK
+	url = https://github.com/microsoft/DirectXTK.git
+[submodule "gui/thirdparty/imgui"]
+	path = gui/thirdparty/imgui
+	url = https://github.com/ocornut/imgui.git
