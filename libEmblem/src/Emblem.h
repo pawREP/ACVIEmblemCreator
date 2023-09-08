@@ -16,7 +16,7 @@ struct BoundingBox {
 
 class Emblem {
 public:
-    static ErrorOr<std::vector<Emblem>> fromJson(const nlohmann::json& json, uint32_t chromaKey);
+    static ErrorOr<std::vector<Emblem>> fromJson(const nlohmann::json& json);
 
     std::vector<uint8_t> serialize() const;
 

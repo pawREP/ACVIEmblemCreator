@@ -4,6 +4,7 @@
 #include "ScopeExit.h"
 #include "UserData7.h"
 #include "aes.hpp"
+#include "libEmblem.h"
 #include <Windows.h>
 #include <cassert>
 #include <cinttypes>
@@ -184,18 +185,7 @@ namespace {
 
             ifs.close();
 
-            // TODO: Should get some arg parser instead of doing this
-            uint32_t chromaKey = 0;
-            {
-                auto it = std::find_if(args.begin(), args.end(),
-                                       [](const std::wstring_view& str) { return str == L"--chroma-key"; });
-                if(it != args.end()) {
-                    assert(++it != args.end());
-                    chromaKey = wcstoull(it->data(), nullptr, 10);
-                }
-            }
-
-            UNWRAP_OR_PROPAGATE(emblems, Emblem::fromJson(json, chromaKey));
+            UNWRAP_OR_PROPAGATE(emblems, Emblem::fromJson(json));
             for(const auto& emblem : emblems) {
                 auto serializedEmblem = emblem.serialize();
 
@@ -224,22 +214,44 @@ namespace {
         return {};
     }
 
+
+#ifdef LIB_EMBLEM
+    std::string g_lastError;
+#endif
+
 } // namespace
 
-int wmain(int argc, wchar_t* argv[]) {
+#ifdef LIB_EMBLEM
+char* embGetLastError() {
+    auto err = new char[g_lastError.size() + 1]{};
+    memcpy(err, g_lastError.data(), g_lastError.size());
+    return err;
+}
+#endif
+
+int embImportEmblems(int argc, wchar_t* argv[]) {
     std::vector<std::wstring_view> arguments;
     for(int i = 0; i < argc; ++i)
         arguments.emplace_back(argv[i], wcslen(argv[i]));
 
     auto result = Main(arguments);
+
     if(!result) {
+#ifdef LIB_EMBLEM
+        g_lastError = result.error().string();
+        return 1;
+#else
         std::cout << "EmblemImporter failed with error:\n\n";
         std::cout << "\t" << result.error().string() << "\n\n";
         std::cout << "Press any key to exit..." << std::endl;
 
         std::cin.ignore();
+#endif
         return 1;
     }
-
     return 0;
+}
+
+int wmain(int argc, wchar_t* argv[]) {
+    return embImportEmblems(argc, argv);
 }
