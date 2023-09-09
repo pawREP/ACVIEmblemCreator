@@ -13,7 +13,7 @@ DateTime DateTime::fromFileTime(FILETIME fileTime) {
     cst = (uint64_t)systemTime.wDayOfWeek    & 0x07  | cst << 0x03;
     cst = (uint64_t)systemTime.wMonth        & 0x0F  | cst << 0x04;
     cst = (uint64_t)systemTime.wMilliseconds & 0x3FF | cst << 0x0A;
-    cst = (uint64_t)systemTime.wYear                 | cst << 0x0C;
+    cst = (uint64_t)systemTime.wYear         & 0xFFF | cst << 0x0C;
     // clang-format on
 
     return { .fileTime = fileTime, .compressedSystemTime = cst };
