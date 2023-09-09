@@ -1,5 +1,7 @@
+#include "AsyncTask.h"
 #include "BatchRenderer.h"
 #include "ChromaKey.h"
+#include "Define.h"
 #include "PlatformHelpers.h"
 #include "RenderPrim.h"
 #include "backends/imgui_impl_dx11.h"
@@ -12,7 +14,6 @@
 #include <d3d11.h>
 #include <filesystem>
 #include <fstream>
-#include <future>
 #include <shobjidl.h>
 #include <tchar.h>
 #include <wrl.h>
@@ -20,7 +21,6 @@
 #pragma comment(lib, "d3d11")
 
 using Microsoft::WRL::ComPtr;
-
 
 namespace {
 
@@ -57,12 +57,7 @@ namespace {
         std::string statusText         = {};
     } guiContext;
 
-    struct ExportContext {
-        std::future<int> future{};
-        std::wstring baseModulePath{};
-        std::wstring jsonPath{};
-        std::wstring sl2Path{};
-    } exportContext;
+    AsyncTask<int(void)> exportTask;
 
     std::vector<RenderPrim<DirectX::VertexPositionColor>> primitives;
     std::vector<int32_t> visiblePrimitives;
@@ -320,15 +315,15 @@ int main(int arc, char* argv[]) {
         if(ImGui::Button("Export to Game"))
             exportEmblemToGame();
 
-        if(exportContext.future._Is_ready()) {
-            auto result = exportContext.future.get();
+        if(exportTask.ready()) {
+            auto result = exportTask.get();
             if(result) {
+                auto errorMessage = embGetLastError();
+                setStatus(errorMessage);
                 delete[] errorMessage;
             } else {
                 setStatus("Success!");
             }
-            if(std::filesystem::exists(exportContext.jsonPath))
-                std::filesystem::remove(exportContext.jsonPath);
         }
 
         ImGui::TextWrapped("%s", guiContext.statusText.c_str());
@@ -506,13 +501,9 @@ namespace {
     }
 
     void exportEmblemToGame() {
-        if(exportContext.future.valid()) // Already exporting
+        if(exportTask.valid()) // Already exporting
             return;
 
-        // Prepare paths
-        WCHAR baseModulePath[MAX_PATH];
-        GetModuleFileNameW(NULL, baseModulePath, MAX_PATH);
-        exportContext.baseModulePath = baseModulePath;
         if(currentJson.empty()) {
             setStatus("No json loaded");
             return;
@@ -523,24 +514,32 @@ namespace {
             setStatus("Invalid .sl2 path");
             return;
         }
-        exportContext.sl2Path = sl2Path.wstring();
 
         // Build and save final json to temp folder
-        auto finalJson         = buildJsonFromVisiblePrimitives();
-        auto finalJsonPath     = std::filesystem::temp_directory_path() / "emblem.json";
-        exportContext.jsonPath = finalJsonPath.wstring();
+        auto finalJson = buildJsonFromVisiblePrimitives();
+        auto jsonPath  = std::filesystem::temp_directory_path() / "emblem.json";
 
-        std::ofstream ofs(finalJsonPath);
+        std::ofstream ofs(jsonPath);
         assert(ofs.is_open());
         ofs << finalJson;
         ofs.close();
 
-        wchar_t* paths[3];
-        paths[0]             = const_cast<wchar_t*>(exportContext.baseModulePath.c_str()); // This is fine, I promise :)
-        paths[1]             = const_cast<wchar_t*>(exportContext.jsonPath.c_str());
-        paths[2]             = const_cast<wchar_t*>(exportContext.sl2Path.c_str());
-        exportContext.future = std::async(&embImportEmblems, 3, paths);
-        guiContext.statusText = "Exporting...";
+        auto emblemExportProc = [sl2Path, jsonPath]() -> int {
+            const wchar_t* paths[2];
+            paths[0] = jsonPath.c_str();
+            paths[1] = sl2Path.c_str();
+            auto ret = embImportEmblems(_countof(paths), paths);
+            if(std::filesystem::exists(jsonPath))
+                std::filesystem::remove(jsonPath);
+            return ret;
+        };
+
+        exportTask = { std::move(emblemExportProc) };
+        exportTask.run();
+
+        setStatus("Exporting...");
+    }
+
     void setStatus(const char* status) {
         guiContext.statusText = status;
     }
