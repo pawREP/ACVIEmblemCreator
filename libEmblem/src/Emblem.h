@@ -6,10 +6,10 @@
 #include <vector>
 
 struct BoundingBox {
-    int minX = std::numeric_limits<int>::max();
-    int minY = std::numeric_limits<int>::max();
-    int maxX = std::numeric_limits<int>::min();
-    int maxY = std::numeric_limits<int>::min();
+    int minX = (std::numeric_limits<int>::max)();
+    int minY = (std::numeric_limits<int>::max)();
+    int maxX = (std::numeric_limits<int>::min)();
+    int maxY = (std::numeric_limits<int>::min)();
 
     static BoundingBox fromJson(const nlohmann::json& json);
 };
