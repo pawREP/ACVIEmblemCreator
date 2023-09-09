@@ -79,6 +79,7 @@ namespace {
     nlohmann::json buildJsonFromVisiblePrimitives();
     bool loadPrimitives(const wchar_t* path);
     void exportEmblemToGame();
+    void setStatus(const char* status);
 
 } // namespace
 
@@ -186,7 +187,7 @@ int main(int arc, char* argv[]) {
                 if(loadPrimitives(jsonPath.wstring().c_str())) {
                     strcpy_s(guiContext.jsonPath, jsonPath.generic_string().c_str());
                 } else {
-                    guiContext.statusText = "Failed to parse json";
+                    setStatus("Failed to parse json");
                 }
             }
         }
@@ -322,11 +323,9 @@ int main(int arc, char* argv[]) {
         if(exportContext.future._Is_ready()) {
             auto result = exportContext.future.get();
             if(result) {
-                auto errorMessage     = embGetLastError();
-                guiContext.statusText = errorMessage;
                 delete[] errorMessage;
             } else {
-                guiContext.statusText = "Success!";
+                setStatus("Success!");
             }
             if(std::filesystem::exists(exportContext.jsonPath))
                 std::filesystem::remove(exportContext.jsonPath);
@@ -521,7 +520,7 @@ namespace {
 
         std::filesystem::path sl2Path{ guiContext.sl2Path };
         if(sl2Path.empty() || !std::filesystem::is_regular_file(sl2Path) || !sl2Path.has_extension() || sl2Path.extension() != ".sl2") {
-            guiContext.statusText = "Invalid .sl2 path";
+            setStatus("Invalid .sl2 path");
             return;
         }
         exportContext.sl2Path = sl2Path.wstring();
@@ -542,6 +541,8 @@ namespace {
         paths[2]             = const_cast<wchar_t*>(exportContext.sl2Path.c_str());
         exportContext.future = std::async(&embImportEmblems, 3, paths);
         guiContext.statusText = "Exporting...";
+    void setStatus(const char* status) {
+        guiContext.statusText = status;
     }
 
 } // namespace
