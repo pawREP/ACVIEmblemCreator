@@ -34,7 +34,7 @@ public:
     AsyncTask& operator=(AsyncTask&& other) noexcept = default;
 
     ~AsyncTask() {
-        assert(future.valid()); // Destroying while future is still valid would block here and is almost certainly a bug.
+        assert(!future.valid()); // Destroying while future is still valid would block here and is almost certainly a bug.
     }
 
     void run() {
