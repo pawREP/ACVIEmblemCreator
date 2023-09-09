@@ -314,7 +314,7 @@ int main(int arc, char* argv[]) {
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
-        ImGui::SetCursorPosY(windowHeight - 60);
+        ImGui::SetCursorPosY(windowHeight - 90);
 
 
         if(ImGui::Button("Export to Game"))
@@ -331,7 +331,7 @@ int main(int arc, char* argv[]) {
                 std::filesystem::remove(exportContext.jsonPath);
         }
 
-        ImGui::Text("%s", guiContext.statusText.c_str());
+        ImGui::TextWrapped("%s", guiContext.statusText.c_str());
 
         ImGui::End();
 
