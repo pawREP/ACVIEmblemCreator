@@ -10,6 +10,6 @@ struct DateTime {
     static DateTime fromCurrentTime();
 
     FILETIME fileTime;
-    uint64_t compressedSystemTime;
+    uint64_t packedSystemTime;
 };
 static_assert(sizeof(DateTime) == 0x10);
