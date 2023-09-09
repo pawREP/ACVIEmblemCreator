@@ -118,15 +118,14 @@ namespace {
     ErrorOr<void> Main(const std::vector<std::wstring_view>& args) {
 
         // Validate arguments
-        if(args.size() < 3)
+        if(args.size() < 2)
             return Error{ "Insufficient number of arguments.\n"
-                          "EmblemCreator is not a GUI app, drag and drop json emblem files together with a sl2 save "
-                          "file on this exe to pack them." };
+                          "At least one .json and one .sl2 required" };
 
         std::vector<std::filesystem::path> emblemJsonFilePaths{};
         std::filesystem::path sl2Path{};
 
-        for(int i = 1; i < args.size(); ++i) {
+        for(int i = 0; i < args.size(); ++i) {
             std::filesystem::path path{ args[i] };
             if(path.empty() || !std::filesystem::is_regular_file(path) || !path.has_extension())
                 continue;
@@ -143,7 +142,9 @@ namespace {
         if(sl2Path.empty())
             return Error{ "Invalid arguments: No sl2 file provided" };
 
-        std::filesystem::path yabberPath = std::filesystem::path{ args[0] }.parent_path() / "Yabber\\Yabber.exe";
+        WCHAR baseModulePath[MAX_PATH];
+        GetModuleFileName(NULL, baseModulePath, MAX_PATH);
+        std::filesystem::path yabberPath = std::filesystem::path{ baseModulePath }.parent_path() / "Yabber\\Yabber.exe";
         if(!std::filesystem::exists(yabberPath))
             return Error{ "Yabber.exe was not found in the current working directory." };
 
