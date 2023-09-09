@@ -139,7 +139,6 @@ ErrorOr<Emblem> Emblem::fromJson(const nlohmann::json& json, const BoundingBox& 
     return emblem;
 }
 
-
 ErrorOr<std::vector<Emblem>> Emblem::fromJson(const nlohmann::json& json) {
     if(!validateJsonFormat(json))
         return Error{ "Unsupported json format. Make sure to use the Geometrize Web App with the settings described in "
@@ -187,7 +186,9 @@ std::vector<uint8_t> Emblem::serialize() const {
         builder.writeBlock("UgcID", ugcId);
         if(creatorId)
             builder.writeBlock("CreatorID", creatorId.value());
-        builder.writeBlock("DateTime", dateTime, sizeof(dateTime));
+
+        auto dateTime = DateTime::fromCurrentTime();
+        builder.writeBlock("DateTime", dateTime);
 
         builder.beginBlock("Image");
         {

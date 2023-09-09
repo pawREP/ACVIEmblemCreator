@@ -1,4 +1,5 @@
 #pragma once
+#include "DateTime.h"
 #include "Error.h"
 #include "json.h"
 #include <cinttypes>
@@ -56,10 +57,7 @@ public:
     uint8_t category = 1;             // User slot
     std::optional<int64_t> creatorId; // SteamId, only for downloaded emblems
     std::wstring ugcId;               // Share code for downloaded emblems, otherwise "";
-    uint8_t dateTime[0x10] = {
-        0x70, 0x96, 0x4A, 0xDA, 0x43, 0xD8, 0xD9, 0x01, 0xE7, 0x77, 0x05, 0x5A, 0x47, 0x12, 0x04, 0x00
-    }; // Default value cause lazy + pointless + can't be bothered to figure out the encoding
-
+    DateTime dateTime{};
     std::vector<LayerDesc> layers;
 
 private:
