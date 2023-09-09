@@ -229,7 +229,7 @@ char* embGetLastError() {
 }
 #endif
 
-int embImportEmblems(int argc, wchar_t* argv[]) {
+int embImportEmblems(int argc, const wchar_t* argv[]) {
     std::vector<std::wstring_view> arguments;
     for(int i = 0; i < argc; ++i)
         arguments.emplace_back(argv[i], wcslen(argv[i]));
@@ -253,5 +253,5 @@ int embImportEmblems(int argc, wchar_t* argv[]) {
 }
 
 int wmain(int argc, wchar_t* argv[]) {
-    return embImportEmblems(argc, argv);
+    return embImportEmblems(argc, const_cast<const wchar_t**>(argv));
 }
