@@ -22,6 +22,7 @@ set(BUILD_TOOLS OFF CACHE BOOL "")
 set(BUILD_XAUDIO_WIN10 ON CACHE BOOL "")
 set(BUILD_XAUDIO_WIN8 OFF CACHE BOOL "")
 add_subdirectory(thirdparty/DirectXTK)
+add_subdirectory(thirdparty/geometrize-lib)
 
 add_executable(EmblemCreator ${SRC_FILES})
 
@@ -30,5 +31,6 @@ target_link_options(EmblemCreator PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTSt
 set(LIBEMBLEM_BUILD_STATIC_LIB ON CACHE BOOL "")
 target_link_libraries(EmblemCreator PUBLIC DirectXTK)
 target_link_libraries(EmblemCreator PUBLIC libEmblem)
+target_link_libraries(EmblemCreator PRIVATE geometrizeLib)
 
 target_include_directories(EmblemCreator PRIVATE thirdparty/imgui)

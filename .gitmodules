@@ -7,3 +7,6 @@
 [submodule "gui/thirdparty/imgui"]
 	path = gui/thirdparty/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "gui/thirdparty/geometrize-lib"]
+	path = gui/thirdparty/geometrize-lib
+	url = https://github.com/pawREP/geometrize-lib.git
