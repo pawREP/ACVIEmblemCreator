@@ -514,6 +514,10 @@ namespace {
         WCHAR baseModulePath[MAX_PATH];
         GetModuleFileNameW(NULL, baseModulePath, MAX_PATH);
         exportContext.baseModulePath = baseModulePath;
+        if(currentJson.empty()) {
+            setStatus("No json loaded");
+            return;
+        }
 
         std::filesystem::path sl2Path{ guiContext.sl2Path };
         if(sl2Path.empty() || !std::filesystem::is_regular_file(sl2Path) || !sl2Path.has_extension() || sl2Path.extension() != ".sl2") {
