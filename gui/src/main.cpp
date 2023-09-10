@@ -46,6 +46,7 @@ namespace {
 
     struct GUIContext {
         bool showWindow                = true;
+        char imagePath[MAX_PATH]       = {};
         char jsonPath[MAX_PATH]        = {};
         char sl2Path[MAX_PATH]         = {};
         bool chromaKeyEnabled          = false;
@@ -55,14 +56,18 @@ namespace {
         float customBackgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         bool drawFrame                 = true;
         std::string statusText         = {};
+        ShapeGeneratorOptions generatorOptions{};
     } guiContext;
 
     AsyncTask<int(void)> exportTask;
 
-    std::vector<RenderPrim<DirectX::VertexPositionColor>> primitives;
+    std::vector<Prim> primitives;
     std::vector<int32_t> visiblePrimitives;
     nlohmann::json currentJson{};
+    std::vector<uint8_t> imageData;
     ChromaKey chromaKey{};
+
+    std::unique_ptr<ShapeGenerator> generator = nullptr;
 
     bool CreateDeviceD3D(HWND hWnd);
     void CleanupDeviceD3D();
@@ -71,10 +76,12 @@ namespace {
     LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     std::filesystem::path openFile();
-    nlohmann::json buildJsonFromVisiblePrimitives();
-    bool loadPrimitives(const wchar_t* path);
+    std::vector<Prim> loadPrimitivesfromJson(const nlohmann::json& json);
+    nlohmann::json loadJsonFromFile(const wchar_t* path);
+    nlohmann::json loadJsonFromString(const std::string& jsonString);
     void exportEmblemToGame();
     void setStatus(const char* status);
+
 
 } // namespace
 
@@ -173,13 +180,88 @@ int main(int arc, char* argv[]) {
 
         ImGui::Begin("Armored Core VI Emblem Creator", &guiContext.showWindow, flags);
 
-        if(ImGui::Button("Open .json")) {
+        if(ImGui::CollapsingHeader("Generator Options")) {
+            auto& opt = guiContext.generatorOptions;
+            ImGui::BeginTable("tbl", 2);
+            ImGui::TableNextColumn();
+            ImGui::CheckboxFlags("Rectangle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Rectangle));
+            ImGui::CheckboxFlags("Rotated Rectangle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::RotatedRectangle));
+            ImGui::CheckboxFlags("Ellipse", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Ellipse));
+            ImGui::TableNextColumn();
+            ImGui::CheckboxFlags("Rotated Ellipse", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::RotatedEllipse));
+            ImGui::CheckboxFlags("Circle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Circle));
+            ImGui::EndTable();
+
+            ImGui::DragInt("Candidates per Shape", &opt.candidateCount, 1, 1, 300);
+            ImGui::DragInt("Mutation per Shape  ", &opt.mutationCount, 1, 1, 300);
+            ImGui::DragInt("Shape Count Limit   ", &opt.maxShapeCount, 1, 1, 1024);
+            ImGui::DragInt("Shape Alpha         ", &opt.shapeAlpha, 1, 1, 255);
+        }
+
+        ImGui::Separator();
+        if(ImGui::Button("Load Image")) {
+            auto imagePath = openFile();
+
+            if(!imagePath.empty() || std::filesystem::is_regular_file(imagePath) || imagePath.has_extension() ||
+               (imagePath.extension() == ".png" || imagePath.extension() == ".jpg")) {
+                std::vector<uint8_t> pixelData{};
+                try {
+                    imageData = loadWICImageAsRGBAPixelData(device.Get(), imagePath.wstring().c_str(), { 256, 256 });
+                    strcpy_s(guiContext.imagePath, imagePath.generic_string().c_str());
+                } catch(const bad_hr_exception& e) {
+                    setStatus("Failed to load image data");
+                    OutputDebugStringA(e.what());
+                }
+            }
+        }
+        ImGui::SameLine();
+        ImGui::PushItemWidth(-1);
+        ImGui::BeginDisabled();
+        ImGui::InputText("a", guiContext.imagePath, MAX_PATH);
+        ImGui::EndDisabled();
+        ImGui::PopItemWidth();
+
+        if(imageData.size()) {
+            if(!generator) {
+                if(ImGui::Button("Generate!")) {
+                    generator = std::make_unique<ShapeGenerator>(256, 256, imageData, guiContext.generatorOptions);
+                    generator->run();
+                }
+            } else {
+                if(ImGui::Button("Cancel Generation")) {
+                    generator->cancel();
+                }
+
+                auto generatorDone = generator->done(); // has to checked before getting state or we might miss some at the end
+
+                if(generator->hasNewState()) {
+                    auto jsonString = generator->getJson();
+                    currentJson     = loadJsonFromString(jsonString);
+                    if(!currentJson.empty()) {
+                        primitives                = loadPrimitivesfromJson(currentJson);
+                        guiContext.maxShapesCount = primitives.size();
+                    } else {
+                        setStatus("Failed to parse json");
+                        generator = nullptr;
+                    }
+                }
+                if(generatorDone) {
+                    generator = nullptr;
+                }
+            }
+        }
+
+        if(ImGui::Button("Load .json")) {
+            generator = nullptr; // Cancel generation in case any is ongoing
+
             auto jsonPath = openFile();
 
             if(!jsonPath.empty() || std::filesystem::is_regular_file(jsonPath) || jsonPath.has_extension() ||
                jsonPath.extension() == ".json") {
-
-                if(loadPrimitives(jsonPath.wstring().c_str())) {
+                currentJson = loadJsonFromFile(jsonPath.wstring().c_str());
+                if(!currentJson.empty()) {
+                    primitives                = loadPrimitivesfromJson(currentJson);
+                    guiContext.maxShapesCount = primitives.size();
                     strcpy_s(guiContext.jsonPath, jsonPath.generic_string().c_str());
                 } else {
                     setStatus("Failed to parse json");
@@ -192,6 +274,8 @@ int main(int arc, char* argv[]) {
         ImGui::InputText("a", guiContext.jsonPath, MAX_PATH);
         ImGui::EndDisabled();
         ImGui::PopItemWidth();
+
+        ImGui::Separator();
 
         if(ImGui::Button("Open .sl2 ")) {
             auto path = openFile();
@@ -296,7 +380,6 @@ int main(int arc, char* argv[]) {
             batchRenderer->drawIndexed(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, indexBuffer, _countof(indexBuffer),
                                        vertices, _countof(vertices));
         }
-
         batchRenderer->end();
 
         auto drawnShapesCount = visiblePrimitives.size();
@@ -309,11 +392,10 @@ int main(int arc, char* argv[]) {
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
-        ImGui::SetCursorPosY(windowHeight - 90);
-
-
+        ImGui::PushStyleColor(ImGuiCol_Button, { 0.81f, 0.35f, 0.32f, 1.f });
         if(ImGui::Button("Export to Game"))
             exportEmblemToGame();
+        ImGui::PopStyleColor();
 
         if(exportTask.ready()) {
             auto result = exportTask.get();
@@ -436,19 +518,10 @@ namespace {
         return ::DefWindowProcW(hWnd, msg, wParam, lParam);
     }
 
-    bool loadPrimitives(const wchar_t* path) {
-        std::ifstream ifs(path);
-        assert(ifs.is_open());
-        try {
-            currentJson = nlohmann::json::parse(ifs);
-        } catch(nlohmann::json::parse_error& ex) {
-            return false;
-        }
-
+    std::vector<Prim> loadPrimitivesfromJson(const nlohmann::json& json) {
         auto shapeDescs = fromGeomtrizeJson(currentJson);
 
-        primitives.clear();
-        visiblePrimitives.clear();
+        std::vector<Prim> primitives;
         for(int i = 0; i < shapeDescs.size(); ++i) {
             // TODO: Make visit
             if(std::holds_alternative<EllipseDesc>(shapeDescs[i])) {
@@ -457,10 +530,28 @@ namespace {
                 primitives.push_back(Rectangle::create(std::get<RectangleDesc>(shapeDescs[i])));
             }
         }
-        visiblePrimitives.reserve(primitives.size());
-        guiContext.maxShapesCount = primitives.size();
-        return true;
+        return primitives;
     }
+
+    nlohmann::json loadJsonFromFile(const wchar_t* path) {
+        std::ifstream ifs(path);
+        assert(ifs.is_open());
+        try {
+            return nlohmann::json::parse(ifs);
+        } catch(nlohmann::json::parse_error& ex) {
+        }
+        return {};
+    }
+
+    nlohmann::json loadJsonFromString(const std::string& jsonString) {
+        try {
+            return nlohmann::json::parse(jsonString);
+        } catch(nlohmann::json::parse_error& ex) {
+            OutputDebugStringA(ex.what());
+        }
+        return {};
+    }
+
 
     std::filesystem::path openFile() {
         Microsoft::WRL::ComPtr<IFileOpenDialog> pFileOpen;
