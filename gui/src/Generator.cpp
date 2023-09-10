@@ -48,11 +48,17 @@ public:
                 std::lock_guard lock{ jsonMutex };
                 jsonString = std::move(jsonStringTmp);
                 hasNewData = true;
+                if(cancelFlag)
+                    break;
             }
         };
 
         runner = { proc };
         runner.run();
+    }
+
+    void cancel() {
+        cancelFlag = true;
     }
 
     bool done() {
@@ -75,6 +81,8 @@ private:
     std::string jsonString;
     bool hasNewData = false;
 
+    std::atomic<bool> cancelFlag = false;
+
     int maxShapeCount;
     geometrize::ImageRunnerOptions options;
     geometrize::Bitmap bitmap;
@@ -89,6 +97,10 @@ ShapeGenerator::~ShapeGenerator() = default;
 
 void ShapeGenerator::run() {
     impl->run();
+}
+
+void ShapeGenerator::cancel() {
+    impl->cancel();
 }
 
 bool ShapeGenerator::done() {

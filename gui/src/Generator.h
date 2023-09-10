@@ -29,6 +29,7 @@ public:
     ~ShapeGenerator();
 
     void run();
+    void cancel();
     bool done();
     bool hasNewState();
     std::string getJson();
