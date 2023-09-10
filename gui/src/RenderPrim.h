@@ -49,7 +49,7 @@ public:
         prim.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         prim.vertices.resize(3 * 360 / angleResolution);
 
-        DirectX::SimpleMath::Vector2 points[360 / angleResolution + 1]; //+1 for convinience
+        DirectX::SimpleMath::Vector2 points[360 / angleResolution + 1]; //+1 for convenience
         getPointsOnEllipse<angleResolution>(desc.cx, desc.cy, desc.ax, desc.ay, desc.angle, points);
 
         DirectX::XMVECTORF32 color = { desc.rgba.r, desc.rgba.g, desc.rgba.b, desc.rgba.a };
