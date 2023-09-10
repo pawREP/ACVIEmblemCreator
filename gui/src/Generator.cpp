@@ -36,7 +36,7 @@ public:
             rect->m_y1                  = 0;
             rect->m_x2                  = static_cast<float>(runner.getCurrent().getWidth());
             rect->m_y2                  = static_cast<float>(runner.getCurrent().getHeight());
-            shapeData.emplace_back(geometrize::ShapeResult{ 0, geometrize::commonutil::getAverageImageColor(bitmap), shape });
+            shapeData.emplace_back(geometrize::ShapeResult{ 0, geometrize::commonutil::getMostCommonImageColor(bitmap), shape });
 
             while(shapeData.size() < maxShapeCount) {
                 const std::vector<geometrize::ShapeResult> shapeResults{ runner.step(options) };
