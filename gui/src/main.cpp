@@ -1,7 +1,8 @@
 #include "AsyncTask.h"
 #include "BatchRenderer.h"
 #include "ChromaKey.h"
-#include "Define.h"
+#include "Generator.h"
+#include "ImageLoader.h"
 #include "PlatformHelpers.h"
 #include "RenderPrim.h"
 #include "backends/imgui_impl_dx11.h"
@@ -15,7 +16,6 @@
 #include <filesystem>
 #include <fstream>
 #include <shobjidl.h>
-#include <tchar.h>
 #include <wrl.h>
 
 #pragma comment(lib, "d3d11")
