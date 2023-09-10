@@ -14,17 +14,18 @@ class ShapeGenerator::ShapeGeneratorImpl {
     MAKE_NONCOPYABLE(ShapeGeneratorImpl);
 
 public:
-    ShapeGeneratorImpl(const std::vector<uint8_t>& pixelData) : bitmap{ 256, 256, pixelData } { // TODO: w/h
+    ShapeGeneratorImpl(int width, int height, const std::vector<uint8_t>& pixelData, const ShapeGeneratorOptions& options)
+    : bitmap{ static_cast<uint32_t>(width), static_cast<uint32_t>(height), pixelData } {
+        this->options.alpha             = options.shapeAlpha;
+        this->options.maxShapeMutations = options.mutationCount;
+        this->options.shapeCount        = options.candidateCount;
+        this->options.shapeTypes        = static_cast<geometrize::ShapeTypes>(options.shapes);
+
+        maxShapeCount = options.maxShapeCount;
     }
 
     void run() {
         auto proc = [this]() {
-            geometrize::ImageRunnerOptions options;
-            options.alpha             = 255;
-            options.maxShapeMutations = 100;
-            options.shapeCount        = 100; // candidates
-            options.shapeTypes        = { geometrize::ShapeTypes::ROTATED_ELLIPSE };
-
             geometrize::ImageRunner runner{ bitmap };
 
             std::vector<geometrize::ShapeResult> shapeData;
@@ -37,7 +38,7 @@ public:
             rect->m_y2                  = static_cast<float>(runner.getCurrent().getHeight());
             shapeData.emplace_back(geometrize::ShapeResult{ 0, geometrize::commonutil::getAverageImageColor(bitmap), shape });
 
-            for(std::size_t steps = 0; steps < 127; steps++) {
+            while(shapeData.size() < maxShapeCount) {
                 const std::vector<geometrize::ShapeResult> shapeResults{ runner.step(options) };
                 assert(shapeResults.size() == 1); // More than one shape per step possible??
 
@@ -74,12 +75,14 @@ private:
     std::string jsonString;
     bool hasNewData = false;
 
+    int maxShapeCount;
+    geometrize::ImageRunnerOptions options;
     geometrize::Bitmap bitmap;
     AsyncTask<void()> runner;
 };
 
-ShapeGenerator::ShapeGenerator(const std::vector<uint8_t>& pixelData)
-: impl(std::make_unique<ShapeGeneratorImpl>(pixelData)) {
+ShapeGenerator::ShapeGenerator(int width, int height, const std::vector<uint8_t>& pixelData, const ShapeGeneratorOptions& options)
+: impl(std::make_unique<ShapeGeneratorImpl>(width, height, pixelData, options)) {
 }
 
 ShapeGenerator::~ShapeGenerator() = default;
