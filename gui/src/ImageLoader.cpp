@@ -32,7 +32,7 @@ namespace {
 
 } // namespace
 
-std::vector<uint8_t> loadWICImageAsRGBAPixelData(ID3D11Device* device, const std::wstring& filePath) {
+std::vector<uint8_t> loadWICImageAsRGBAPixelData(ID3D11Device* device, const std::wstring& filePath, ImageDimensions resizeDimensions) {
 
     ComPtr<IWICBitmapDecoder> decoder;
     ThrowIfFailed(getWic()->CreateDecoderFromFilename(filePath.c_str(), NULL, GENERIC_READ,
@@ -41,10 +41,18 @@ std::vector<uint8_t> loadWICImageAsRGBAPixelData(ID3D11Device* device, const std
     ComPtr<IWICBitmapFrameDecode> frame;
     ThrowIfFailed(decoder->GetFrame(0, frame.ReleaseAndGetAddressOf()));
 
+    IWICBitmapSource* source = frame.Get();
+
+    ComPtr<IWICBitmapScaler> scaler;
+    if(resizeDimensions) {
+        ThrowIfFailed(getWic()->CreateBitmapScaler(scaler.ReleaseAndGetAddressOf()));
+        ThrowIfFailed(scaler->Initialize(frame.Get(), resizeDimensions.width, resizeDimensions.height, WICBitmapInterpolationModeFant));
+        source = scaler.Get();
+    }
+
     ComPtr<IWICFormatConverter> converter;
     ThrowIfFailed(getWic()->CreateFormatConverter(converter.ReleaseAndGetAddressOf()));
-
-    ThrowIfFailed(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, nullptr, 0.,
+    ThrowIfFailed(converter->Initialize(source, GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, nullptr, 0.,
                                         WICBitmapPaletteTypeCustom));
 
     UINT width{}, height{};
@@ -71,4 +79,8 @@ std::vector<uint8_t> loadWICImageAsRGBAPixelData(ID3D11Device* device, const std
     std::vector<uint8_t> pixelData(pixelDataSize);
     converter->CopyPixels(nullptr, rowPitch, pixelDataSize, pixelData.data());
     return pixelData;
+}
+
+ImageDimensions::operator bool() {
+    return width && height;
 }
