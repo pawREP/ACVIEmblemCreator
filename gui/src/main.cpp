@@ -180,26 +180,35 @@ int main(int arc, char* argv[]) {
 
         ImGui::Begin("Armored Core VI Emblem Creator", &guiContext.showWindow, flags);
 
-        if(ImGui::CollapsingHeader("Generator Options")) {
-            auto& opt = guiContext.generatorOptions;
-            ImGui::BeginTable("tbl", 2);
-            ImGui::TableNextColumn();
-            ImGui::CheckboxFlags("Rectangle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Rectangle));
-            ImGui::CheckboxFlags("Rotated Rectangle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::RotatedRectangle));
-            ImGui::CheckboxFlags("Ellipse", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Ellipse));
-            ImGui::TableNextColumn();
-            ImGui::CheckboxFlags("Rotated Ellipse", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::RotatedEllipse));
-            ImGui::CheckboxFlags("Circle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Circle));
-            ImGui::EndTable();
+        if(ImGui::Button("Load Json ")) {
+            generator = nullptr; // Cancel generation in case any is ongoing
+            imageData.clear();
+            memset(guiContext.imagePath, 0, sizeof(guiContext.imagePath));
 
-            ImGui::DragInt("Candidates per Shape", &opt.candidateCount, 1, 1, 300);
-            ImGui::DragInt("Mutation per Shape  ", &opt.mutationCount, 1, 1, 300);
-            ImGui::DragInt("Shape Count Limit   ", &opt.maxShapeCount, 1, 1, 1024);
-            ImGui::DragInt("Shape Alpha         ", &opt.shapeAlpha, 1, 1, 255);
+            auto jsonPath = openFile();
+
+            if(!jsonPath.empty() || std::filesystem::is_regular_file(jsonPath) || jsonPath.has_extension() ||
+               jsonPath.extension() == ".json") {
+                currentJson = loadJsonFromFile(jsonPath.wstring().c_str());
+                if(!currentJson.empty()) {
+                    primitives                = loadPrimitivesfromJson(currentJson);
+                    guiContext.maxShapesCount = primitives.size();
+                    strcpy_s(guiContext.jsonPath, jsonPath.generic_string().c_str());
+                } else {
+                    setStatus("Failed to parse json");
+                }
+            }
         }
+        ImGui::SameLine();
+        ImGui::PushItemWidth(-1);
+        ImGui::BeginDisabled();
+        ImGui::InputText("a", guiContext.jsonPath, MAX_PATH);
+        ImGui::EndDisabled();
+        ImGui::PopItemWidth();
 
-        ImGui::Separator();
         if(ImGui::Button("Load Image")) {
+            memset(guiContext.jsonPath, 0, sizeof(guiContext.jsonPath));
+
             auto imagePath = openFile();
 
             if(!imagePath.empty() || std::filesystem::is_regular_file(imagePath) || imagePath.has_extension() ||
@@ -222,6 +231,24 @@ int main(int arc, char* argv[]) {
         ImGui::PopItemWidth();
 
         if(imageData.size()) {
+            ImGui::Indent();
+
+            auto& opt = guiContext.generatorOptions;
+            ImGui::BeginTable("tbl", 2);
+            ImGui::TableNextColumn();
+            ImGui::CheckboxFlags("Rectangle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Rectangle));
+            ImGui::CheckboxFlags("Rotated Rectangle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::RotatedRectangle));
+            ImGui::CheckboxFlags("Ellipse", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Ellipse));
+            ImGui::TableNextColumn();
+            ImGui::CheckboxFlags("Rotated Ellipse", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::RotatedEllipse));
+            ImGui::CheckboxFlags("Circle", (uint32_t*)&opt.shapes, std::to_underlying(GeneratorShapes::Circle));
+            ImGui::EndTable();
+
+            ImGui::DragInt("Candidates per Shape", &opt.candidateCount, 1, 1, 300);
+            ImGui::DragInt("Mutation per Shape  ", &opt.mutationCount, 1, 1, 300);
+            ImGui::DragInt("Shape Count Limit   ", &opt.maxShapeCount, 1, 1, 1024);
+            ImGui::DragInt("Shape Alpha         ", &opt.shapeAlpha, 1, 1, 255);
+
             if(!generator) {
                 if(ImGui::Button("Generate!")) {
                     generator = std::make_unique<ShapeGenerator>(256, 256, imageData, guiContext.generatorOptions);
@@ -249,31 +276,10 @@ int main(int arc, char* argv[]) {
                     generator = nullptr;
                 }
             }
+
+            ImGui::Unindent();
         }
 
-        if(ImGui::Button("Load .json")) {
-            generator = nullptr; // Cancel generation in case any is ongoing
-
-            auto jsonPath = openFile();
-
-            if(!jsonPath.empty() || std::filesystem::is_regular_file(jsonPath) || jsonPath.has_extension() ||
-               jsonPath.extension() == ".json") {
-                currentJson = loadJsonFromFile(jsonPath.wstring().c_str());
-                if(!currentJson.empty()) {
-                    primitives                = loadPrimitivesfromJson(currentJson);
-                    guiContext.maxShapesCount = primitives.size();
-                    strcpy_s(guiContext.jsonPath, jsonPath.generic_string().c_str());
-                } else {
-                    setStatus("Failed to parse json");
-                }
-            }
-        }
-        ImGui::SameLine();
-        ImGui::PushItemWidth(-1);
-        ImGui::BeginDisabled();
-        ImGui::InputText("a", guiContext.jsonPath, MAX_PATH);
-        ImGui::EndDisabled();
-        ImGui::PopItemWidth();
 
         ImGui::Separator();
 
@@ -596,7 +602,7 @@ namespace {
             return;
 
         if(currentJson.empty()) {
-            setStatus("No json loaded");
+            setStatus("No geometry data loaded or generated");
             return;
         }
 
