@@ -68,7 +68,7 @@ std::vector<ShapeDesc> fromGeomtrizeJson(const nlohmann::json& json) {
             desc.rgba.r = shapeJson["color"][0] / 255.f;
             desc.rgba.g = shapeJson["color"][1] / 255.f;
             desc.rgba.b = shapeJson["color"][2] / 255.f;
-            desc.rgba.a = shapeJson["color"][3] / 255.f; // TODO: q
+            desc.rgba.a = shapeJson["color"][3] / 255.f; 
 
             shapes.push_back(desc);
         } break;
@@ -81,7 +81,7 @@ std::vector<ShapeDesc> fromGeomtrizeJson(const nlohmann::json& json) {
             desc.rgba.r = shapeJson["color"][0] / 255.f;
             desc.rgba.g = shapeJson["color"][1] / 255.f;
             desc.rgba.b = shapeJson["color"][2] / 255.f;
-            desc.rgba.a = shapeJson["color"][3] / 255.f; // TODO: q
+            desc.rgba.a = shapeJson["color"][3] / 255.f; 
 
             desc.cx = scale * (shapeJson["data"][0].get<float>() / scaleX) - scale * .5f;
             desc.cy = scale * ((1.f - shapeJson["data"][1].get<float>() / scaleY)) - scale * .5f;
