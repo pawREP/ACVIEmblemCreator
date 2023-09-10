@@ -12,11 +12,11 @@ enum class GeneratorShapes : std::uint32_t {
 };
 
 struct ShapeGeneratorOptions {
-    int mutationCount  = 50;  // Mutations per candidate
-    int candidateCount = 50;  // Candidates per step
-    int maxShapeCount  = 128; // Max number of shapes to generate
-    int shapeAlpha     = 128; // Alpha component of shape color
-    GeneratorShapes shapes;   // Allowed shape types
+    int mutationCount      = 100;                             // Mutations per candidate
+    int candidateCount     = 100;                             // Candidates per step
+    int maxShapeCount      = 128;                             // Max number of shapes to generate
+    int shapeAlpha         = 255;                             // Alpha component of shape color
+    GeneratorShapes shapes = GeneratorShapes::RotatedEllipse; // Allowed shape types
 };
 
 class ShapeGenerator {
