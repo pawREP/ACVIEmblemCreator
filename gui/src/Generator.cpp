@@ -93,7 +93,9 @@ ShapeGenerator::ShapeGenerator(int width, int height, const std::vector<uint8_t>
 : impl(std::make_unique<ShapeGeneratorImpl>(width, height, pixelData, options)) {
 }
 
-ShapeGenerator::~ShapeGenerator() = default;
+ShapeGenerator::~ShapeGenerator() {
+    cancel();
+}
 
 void ShapeGenerator::run() {
     impl->run();
