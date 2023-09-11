@@ -27,5 +27,9 @@ With that out of the way, get the latest release version **[here](https://github
 * Use `Open .sl2` to select a armored core VI save file. 
 * Finally, press `Export to Game` to write the generated emblem to your save file. If everything went well, you'll see a little `Success` confirmation.
 * Boot up the game and you should find the new emblem in the image editor under User1
+
 ### Advanced usage
   Since there is a hard limit of 128 per emblem in-game it can be difficult to represent images with a lot of detail. One way to get around this issue is to generate multiple emblems from a single reference image and layer them in-game. To do this simply increase the `Shape Count Limit` to a higher value before generating. The `Drawn Shape Count` above the export button indicates how many shapes are currently being displayed after all post processing steps have been applied. You can always reduce the number further by using the `Shape Limit` slider. To get the best image quality it's good idea to generate about as many shapes as needed and not crop off a large number of shapes at the end. Enabling more shape types and increasing candidate and mutation count can also increase image quality at the cost of generation time.
+
+### Legacy usage
+  You can still generate emblems by vectorizing and exporting images as json from the [Geometrize Web App](https://www.samcodes.co.uk/project/geometrize-haxe-web/). You can import the jsons using the `Load Json` button in the gui. This method might give you a better preview of the final result for shapes with low alpha. 
