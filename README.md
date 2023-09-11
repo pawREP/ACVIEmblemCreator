@@ -13,13 +13,13 @@ Introducing Emblem Creator, a user friendly tool that allows you to effortlessly
 </div>
 
 ## How to use:
-  *Before you do anything, make a backup of your save file. This tool imports emblems directly into your save file and, while unlikely, save file corruption is always a possibility. Better save than sorry. You can find your save file under `%AppData%\Roaming\ArmoredCore6\{SteamID}\AC60000.sl2`. Also be aware that modding always comes with risks. While there is currently no indication that importing emblems is unsafe, it's neither a guarantee nor does it mean the situation can't change in the future. Proceed at your own risk!*
+  *Before you do anything, make a backup of your save file. This tool inserts emblems directly into your save file and, while unlikely, save file corruption is always a possibility. Better save than sorry. You can find your save file under `%APPDATA%\ArmoredCore6\{SteamID}\AC60000.sl2`. Also be aware that modding always comes with risks. While there is currently no indication that importing emblems is unsafe, it's neither a guarantee nor does it mean the situation can't change in the future. Proceed at your own risk!*
 
 With that out of the way, get the latest release version **[here](https://github.com/pawREP/ACVIEmblemCreator/releases/latest)** and follow the instructions below.
 
 ### Basic Usage
 
-* Start `EmblemCreator.exe` to bring up the importer gui.
+* Start `EmblemCreator.exe` to bring up the image import GUI.
 * Click `Load Image` and select a `.jpg` or `.png` file to use as a source. This image should be square or it will be stretched to be square during import.
 * Once the image is loaded some additional settings to customize the generation process come up. You can leave them as default to start with.
 * Click `Generate!` to start the vectorization process. You'll see the image get build up on the left. Once the `shape count limit` as been reached the generation will automatically stop. 
@@ -32,4 +32,4 @@ With that out of the way, get the latest release version **[here](https://github
   Since there is a hard limit of 128 per emblem in-game it can be difficult to represent images with a lot of detail. One way to get around this issue is to generate multiple emblems from a single reference image and layer them in-game. To do this simply increase the `Shape Count Limit` to a higher value before generating. The `Drawn Shape Count` above the export button indicates how many shapes are currently being displayed after all post processing steps have been applied. You can always reduce the number further by using the `Shape Limit` slider. To get the best image quality it's good idea to generate about as many shapes as needed and not crop off a large number of shapes at the end. Enabling more shape types and increasing candidate and mutation count can also increase image quality at the cost of generation time.
 
 ### Legacy usage
-  You can still generate emblems by vectorizing and exporting images as json from the [Geometrize Web App](https://www.samcodes.co.uk/project/geometrize-haxe-web/). You can import the jsons using the `Load Json` button in the gui. This method might give you a better preview of the final result for shapes with low alpha. 
+  You can still generate emblems by vectorizing and exporting images as json from the [Geometrize Web App](https://www.samcodes.co.uk/project/geometrize-haxe-web/). You can import the jsons using the `Load Json` button in the GUI. This method might give you a better preview of the final result for shapes with low alpha. 
