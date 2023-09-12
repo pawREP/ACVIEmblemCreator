@@ -34,7 +34,7 @@ struct Group;
 
 typedef struct{
     LayerData groupData;
-    if(groupData.decalId == 0x3F00){
+    if((groupData.decalId & 0x3F00) == 0x3F00){
         int childCount;
         Group group[childCount];
     }
