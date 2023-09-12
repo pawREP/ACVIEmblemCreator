@@ -12,21 +12,11 @@
 //------------------------------------------------
 
 typedef struct {
-    byte r;
-    byte g;
-    byte b;
-    byte a;
+    ubyte r;
+    ubyte g;
+    ubyte b;
+    ubyte a;
 } RGBA;
-
-enum <short> LayerType { 
-    GroupLayer = 0,
-    SingleLayer = 1,
-};
-
-typedef struct {
-   short sublayerCount;
-   LayerType type;    
-} LayerGroupHeader;
 
 typedef struct{
     short decalId; // 0x4000 bit encodes 'inverted' toggle
@@ -36,29 +26,38 @@ typedef struct{
     short scaleY;  // scaled by 0x10
     short angle;   // 0-360
     RGBA rgba;
-    short maskMode; //0x000 default, 0x0040 toggle once, 0x0080 toggle twice
+    short maskMode; //0x000 default, 0x0040 toggle once, 0x0080 toggle twice, also gradient
     short pad;
-} LayerData;
+} LayerData<optimize=false,bgcolor=cRed>;
 
-struct LayerGroup;
+struct Group;
+
+typedef struct{
+    LayerData groupData;
+    if(groupData.decalId == 0x3F00){
+        int childCount;
+        Group group[childCount];
+    }
+} Group<optimize=false,bgcolor=cRed>;
 
 typedef struct {
-    LayerGroupHeader header;
-    if(header.type == SingleLayer){
-        Assert(header.sublayerCount == 3); // weird
-        LayerData layer;
-    }else if(header.type == GroupLayer){
-        LayerData layer[header.sublayerCount];
-        LayerGroup layerGroup;
-    }else{
-        Assert(false);
-    }
-} LayerGroup<optimize=false>;
+   short unk0;
+   short unk1;  
+} LayerHeader;
+
+struct Layer;
+
+typedef struct {
+    LayerHeader header;
+    Assert(header.unk0 == 3); 
+    Assert(header.unk1 == 1);
+    Group group;
+} Layer<optimize=false,bgcolor=cGreen>;
 
 typedef struct {
     short unk0; Assert(unk0 == 0);
-    short layerGroupCount;
-    LayerGroup layerGroups[layerGroupCount];
+    short layerCount;
+    Layer layers[layerCount];
 } Image <bgcolor=Random(0xFFFFFF), optimize=false>;
 
 typedef struct {
