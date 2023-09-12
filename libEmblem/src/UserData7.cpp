@@ -81,11 +81,9 @@ std::vector<uint8_t> UserDataContainer::serialize() const {
         file.serialize(ostream);
 
     int extraFilesCount = extraFiles_.size();
-    if(extraFilesCount) {
-        ostream.write((char*)&extraFilesCount, sizeof(extraFilesCount));
-        for(const auto& file : extraFiles_)
-            file.serialize(ostream);
-    }
+    ostream.write((char*)&extraFilesCount, sizeof(extraFilesCount));
+    for(const auto& file : extraFiles_)
+        file.serialize(ostream);
 
     // checksum
     auto checksum = md5Digest(buffer.data() + 0x14, header.size - 0x10);
