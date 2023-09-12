@@ -57,7 +57,7 @@ ErrorOr<UserDataContainer> UserDataContainer::deserialize(const std::vector<uint
     }
     int extraFileCount{};
     inputStream.read((char*)&extraFileCount, sizeof(extraFileCount));
-    if(extraFileCount) {
+    for(int i = 0; i < extraFileCount; ++i) {
         auto fileOr = UserDataFile::deserialize(inputStream);
         PROPAGATE_IF_ERROR(fileOr);
         container.extraFiles_.push_back(std::move(fileOr).value());
@@ -81,9 +81,11 @@ std::vector<uint8_t> UserDataContainer::serialize() const {
         file.serialize(ostream);
 
     int extraFilesCount = extraFiles_.size();
-    ostream.write((char*)&extraFilesCount, sizeof(extraFilesCount));
-    for(const auto& file : extraFiles_)
-        file.serialize(ostream);
+    if(extraFilesCount) {
+        ostream.write((char*)&extraFilesCount, sizeof(extraFilesCount));
+        for(const auto& file : extraFiles_)
+            file.serialize(ostream);
+    }
 
     // checksum
     auto checksum = md5Digest(buffer.data() + 0x14, header.size - 0x10);
