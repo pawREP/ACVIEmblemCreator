@@ -17,7 +17,7 @@
 
 namespace {
 
-    constexpr uint8_t userDataKey[AES_KEYLEN] = { 0xB1, 0x56, 0x87, 0x9F, 0x13, 0x48, 0x97, 0x98,
+    constexpr uint8_t userDataKey[crypto::AESBlockLen] = { 0xB1, 0x56, 0x87, 0x9F, 0x13, 0x48, 0x97, 0x98,
                                                   0x70, 0x05, 0xC4, 0x87, 0x00, 0xAE, 0xF8, 0x79 };
 
     ErrorOr<std::vector<uint8_t>> readBinaryFile(const std::filesystem::path& path) {
@@ -168,7 +168,7 @@ namespace {
         auto userData7FilePath = unpackedSl2DirPath / "USER_DATA007";
         UNWRAP_OR_PROPAGATE(userData7Data, readBinaryFile(userData7FilePath));
 
-        crypto::decryptInplace(userData7Data.data() + AES_BLOCKLEN, userData7Data.size() - AES_BLOCKLEN,
+        crypto::decryptInplace(userData7Data.data() + crypto::AESBlockLen, userData7Data.size() - crypto::AESBlockLen,
                                userData7Data.data(), userDataKey);
 
         // Deserialize UserData007
@@ -197,7 +197,7 @@ namespace {
 
         // Serialize UserData007
         userData7Data = userData7.serialize();
-        crypto::encryptInplace(userData7Data.data() + AES_BLOCKLEN, userData7Data.size() - AES_BLOCKLEN,
+        crypto::encryptInplace(userData7Data.data() + crypto::AESBlockLen, userData7Data.size() - crypto::AESBlockLen,
                                userData7Data.data(), userDataKey);
         PROPAGATE_IF_ERROR(writeBinaryFile(userData7FilePath, userData7Data));
 
