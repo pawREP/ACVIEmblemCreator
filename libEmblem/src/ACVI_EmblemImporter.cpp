@@ -164,15 +164,15 @@ namespace {
                 std::filesystem::remove_all(unpackedSl2DirPath);
         };
 
-        // Load and decypt UserData007
-        auto userData7FilePath = unpackedSl2DirPath / "USER_DATA007";
-        UNWRAP_OR_PROPAGATE(userData7Data, readBinaryFile(userData7FilePath));
+        // Load and decypt UserData
+        auto userDataFilePath = unpackedSl2DirPath / "USER_DATA007";
+        UNWRAP_OR_PROPAGATE(userDataBytes, readBinaryFile(userDataFilePath));
 
-        crypto::decryptInplace(userData7Data.data() + crypto::AESBlockLen, userData7Data.size() - crypto::AESBlockLen,
-                               userData7Data.data(), userDataKey);
+        crypto::decryptInplace(userDataBytes.data() + crypto::AESBlockLen, userDataBytes.size() - crypto::AESBlockLen,
+                               userDataBytes.data(), userDataKey);
 
-        // Deserialize UserData007
-        UNWRAP_OR_PROPAGATE(userData7, UserDataContainer::deserialize(userData7Data));
+        // Deserialize UserData
+        UNWRAP_OR_PROPAGATE(userData, UserDataContainer::deserialize(userDataBytes));
 
         // Insert EMBCs
         for(const auto& emblemJsonFilePath : emblemJsonFilePaths) {
@@ -195,11 +195,12 @@ namespace {
             }
         }
 
-        // Serialize UserData007
-        userData7Data = userData7.serialize();
-        crypto::encryptInplace(userData7Data.data() + crypto::AESBlockLen, userData7Data.size() - crypto::AESBlockLen,
-                               userData7Data.data(), userDataKey);
-        PROPAGATE_IF_ERROR(writeBinaryFile(userData7FilePath, userData7Data));
+
+        // Serialize UserData
+        userDataBytes = userData.serialize();
+        crypto::encryptInplace(userDataBytes.data() + crypto::AESBlockLen, userDataBytes.size() - crypto::AESBlockLen,
+                               userDataBytes.data(), userDataKey);
+        PROPAGATE_IF_ERROR(writeBinaryFile(userDataFilePath, userDataBytes));
 
         // Pack sl2
         PROPAGATE_IF_ERROR(packBinder(yabberPath, unpackedSl2DirPath));
