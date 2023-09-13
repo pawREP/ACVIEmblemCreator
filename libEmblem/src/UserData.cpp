@@ -1,46 +1,11 @@
-#include "UserData7.h"
+#include "UserData.h"
+#include "Checksum.h"
+#include "Compression.h"
 #include "md5.h"
 #include "zlib.h"
 #include <array>
 #include <span>
 #include <spanstream>
-
-namespace {
-
-    std::vector<uint8_t> deflateBuffer(const uint8_t* input, int inputSize) {
-        std::vector<uint8_t> result;
-        result.resize(inputSize); // TODO: Could probably fail in some extreme cases, like 1 byte input.
-
-        z_stream defstream;
-        defstream.zalloc = Z_NULL;
-        defstream.zfree  = Z_NULL;
-        defstream.opaque = Z_NULL;
-
-        defstream.avail_in  = (uInt)inputSize;
-        defstream.next_in   = (Bytef*)input;
-        defstream.avail_out = (uInt)inputSize;
-        defstream.next_out  = (Bytef*)result.data();
-
-        deflateInit(&defstream, Z_BEST_COMPRESSION);
-        deflate(&defstream, Z_FINISH);
-        deflateEnd(&defstream);
-
-        result.resize(defstream.total_out);
-        return result;
-    }
-
-    std::array<uint8_t, 0x10> md5Digest(const uint8_t* data, int64_t size) {
-        MD5Context ctx;
-        md5Init(&ctx);
-        md5Update(&ctx, const_cast<uint8_t*>(data), size); // This md5 library is sussy..
-        md5Finalize(&ctx);
-
-        std::array<uint8_t, 0x10> result;
-        std::copy(std::begin(ctx.digest), std::end(ctx.digest), result.data());
-        return result;
-    };
-
-} // namespace
 
 ErrorOr<UserDataContainer> UserDataContainer::deserialize(const std::vector<uint8_t>& data) {
     std::ispanstream inputStream{ { (char*)data.data(), data.size() }, std::ios::in | std::ios::binary };
@@ -86,7 +51,7 @@ std::vector<uint8_t> UserDataContainer::serialize() const {
         file.serialize(ostream);
 
     // checksum
-    auto checksum = md5Digest(buffer.data() + 0x14, header.size - 0x10);
+    auto checksum = md5Checksum(buffer.data() + 0x14, header.size - 0x10);
     ostream.seekp(sizeof(header.size) + header.size);
     ostream.write((char*)checksum.data(), sizeof(checksum));
 
@@ -145,7 +110,7 @@ ErrorOr<UserDataFile> UserDataFile::create(std::string_view magic, const std::ve
     UserDataFile file;
     std::memcpy(&file.header.magic, magic.data(), magic.size());
     file.header.inflatedSize = data.size();
-    file.data                = deflateBuffer(data.data(), data.size());
+    file.data                = deflate(data.data(), data.size());
     file.header.deflatedSize = file.data.size();
 
     return file;
