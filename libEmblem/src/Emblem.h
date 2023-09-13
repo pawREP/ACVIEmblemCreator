@@ -1,31 +1,71 @@
 #pragma once
-#include "DateTime.h"
 #include "Error.h"
-#include "json.h"
+#include "Serialization.h"
+#include <Windows.h>
 #include <cinttypes>
 #include <optional>
+#include <span>
+#include <spanstream>
 #include <vector>
 
-struct BoundingBox {
-    int minX = (std::numeric_limits<int>::max)();
-    int minY = (std::numeric_limits<int>::max)();
-    int maxX = (std::numeric_limits<int>::min)();
-    int maxY = (std::numeric_limits<int>::min)();
+struct DateTime {
+    static constexpr char const* name = "DateTime";
 
-    static BoundingBox fromJson(const nlohmann::json& json);
+    static DateTime deserialize(BinaryStreamReader& reader);
+    static DateTime fromCurrentTime();
+
+    void serialize(BinaryStreamWriter& writer) const;
+
+    FILETIME filetime{};
+
+private:
+    static constexpr uint64_t packSystemTime(const SYSTEMTIME& systemTime);
 };
 
-class Emblem {
-public:
-    static ErrorOr<std::vector<Emblem>> fromJson(const nlohmann::json& json);
+struct Category {
+    static constexpr char const* name = "Category";
 
-    std::vector<uint8_t> serialize() const;
+    Category& operator=(uint8_t category);
+
+    static Category deserialize(BinaryStreamReader& reader);
+
+    void serialize(BinaryStreamWriter& writer) const;
+
+    int8_t category{};
+};
+
+struct CreatorID {
+    static constexpr char const* name = "CreatorID";
+
+    CreatorID& operator=(int64_t steamdId);
+
+    static CreatorID deserialize(BinaryStreamReader& reader);
+
+    void serialize(BinaryStreamWriter& writer) const;
+
+    int64_t steamId{};
+};
+
+struct UgcID {
+    static constexpr char const* name = "UgcID";
+
+    UgcID& operator=(const wchar_t* shareCode);
+
+    static UgcID deserialize(BinaryStreamReader& reader);
+    void serialize(BinaryStreamWriter& writer) const;
+
+    std::wstring shareCode;
+};
+
+class Image {
+public:
+    static constexpr char const* name = "Image";
 
     struct RGBA {
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-        uint8_t a;
+        byte r;
+        byte g;
+        byte b;
+        byte a;
     };
 
     enum class DecalType : short {
@@ -33,35 +73,48 @@ public:
         EllipseSolid = 102,
     };
 
-    enum class LayerType : short {
-        GroupLayer  = 0,
-        SingleLayer = 1,
-    };
-
-    struct LayerDesc {
-        short subLayerCount = 3; // This value is fixed for LayerType::SingleLayer
-        LayerType type      = LayerType::SingleLayer;
-        DecalType decalId; // 0x4000 bit encodes 'inverted' toggle
-        short posX;        // scaled by 0x10
-        short posY;        // scaled by 0x10
-        short scaleX;      // scaled by 0x10
-        short scaleY;      // scaled by 0x10
-        short angle;       // 0-360
+    struct alignas(4) GroupData {
+        short decalId; // 0x4000 bit encodes 'inverted' toggle, 0x3F00 mask indicates layerGroup
+        short posX;    // scaled by 0x10
+        short posY;    // scaled by 0x10
+        short scaleX;  // scaled by 0x10
+        short scaleY;  // scaled by 0x10
+        short angle;   // 0-360
         RGBA rgba;
-        short toggledMask = 0; // 0x0000 default, 0x0040 toggle once, 0x0080 toggle twice
-        short _padding{};
+        short maskMode; // 0x000 default, 0x0040 toggle once, 0x0080 toggle twice
     };
-    static_assert(sizeof(LayerDesc) == 0x18);
-    static_assert(std::is_trivially_copyable_v<LayerDesc>);
+    static_assert(sizeof(GroupData) == 20);
 
-    uint8_t category = 1;             // User slot
-    std::optional<int64_t> creatorId; // SteamId, only for downloaded emblems
-    std::wstring ugcId;               // Share code for downloaded emblems, otherwise "";
-    DateTime dateTime{};
-    std::vector<LayerDesc> layers;
+    struct Group {
+        GroupData data;
+        std::vector<Group> children;
+    };
+
+    struct Layer {
+        Group group;
+    };
+
+    static Image deserialize(BinaryStreamReader& reader);
+    void serialize(BinaryStreamWriter& writer) const;
+
+    std::vector<Layer> layers;
 
 private:
-    Emblem() = default;
+    void serializeGroup(BinaryStreamWriter& writer, const Group& group) const;
+    void serializeLayer(BinaryStreamWriter& writer, const Layer& layer) const;
 
-    static ErrorOr<Emblem> fromJson(const nlohmann::json& json, const BoundingBox& bb);
+    static Group deserializeGroup(BinaryStreamReader& reader);
+    static Layer deserializeLayer(BinaryStreamReader& reader);
+};
+
+class EMBC {
+public:
+    static ErrorOr<EMBC> deserialize(BinaryStreamReader& reader);
+    void serialize(BinaryStreamWriter& writer) const;
+
+    Category category;
+    UgcID ugcId;
+    std::optional<CreatorID> creatorId;
+    DateTime dateTime;
+    Image image;
 };
