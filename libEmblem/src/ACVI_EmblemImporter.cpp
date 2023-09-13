@@ -188,10 +188,16 @@ namespace {
 
             UNWRAP_OR_PROPAGATE(emblems, GeometrizeImporter::fromJson(json));
             for(const auto& emblem : emblems) {
-                auto serializedEmblem = emblem.serialize();
 
-                UNWRAP_OR_PROPAGATE(userDataFile, UserDataFile::create("EMBC", serializedEmblem));
-                userData7.insertFile(std::move(userDataFile));
+                EMBC embc;
+                embc.category = 1;
+                embc.ugcId    = L"";
+                embc.dateTime = DateTime::fromCurrentTime();
+                embc.image    = std::move(emblem);
+
+                auto data = serializeToVector(embc);
+                UNWRAP_OR_PROPAGATE(userDataFile, UserDataFile::create("EMBC", data));
+                userData.insertFile(std::move(userDataFile));
             }
         }
 
