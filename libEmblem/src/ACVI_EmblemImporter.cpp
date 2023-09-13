@@ -186,7 +186,7 @@ namespace {
 
             ifs.close();
 
-            UNWRAP_OR_PROPAGATE(emblems, Emblem::fromJson(json));
+            UNWRAP_OR_PROPAGATE(emblems, GeometrizeImporter::fromJson(json));
             for(const auto& emblem : emblems) {
                 auto serializedEmblem = emblem.serialize();
 
