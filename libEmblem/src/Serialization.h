@@ -27,3 +27,31 @@ std::vector<uint8_t> serializeToVector(const T& serializable) {
     std::vector<uint8_t> data{ view.data(), view.data() + view.size() };
     return data;
 };
+
+class IReadWriteObserver {
+public:
+    virtual ~IReadWriteObserver() = default;
+
+    virtual void observe(const uint8_t* data, int64_t count) = 0;
+};
+
+class AssertFullReadCoverage : public IReadWriteObserver {
+public:
+    AssertFullReadCoverage(int32_t size) : coverage(size) {
+    }
+
+    ~AssertFullReadCoverage() {
+        auto it = std::find(coverage.begin(), coverage.end(), 0);
+        assert(it == coverage.end() && "Full read coverage assert failed");
+    }
+
+    void observe(const uint8_t* data, int64_t count) override {
+        if(!begin) // Assuming the first read is at the start
+            begin = data;
+
+        memset(&coverage[std::distance(begin, data)], 1, count);
+    }
+
+    const uint8_t* begin = nullptr;
+    std::vector<uint8_t> coverage; // TODO:Could be done much more compact
+};
