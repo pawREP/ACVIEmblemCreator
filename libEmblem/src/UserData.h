@@ -1,46 +1,36 @@
 #pragma once
 #include "Define.h"
 #include "Error.h"
-#include <cassert>
-#include <cinttypes>
-#include <iosfwd>
-#include <iostream>
-#include <sstream>
+#include "Serialization.h"
 #include <string>
 #include <vector>
-#include <span>
 
 struct UserDataFile {
 
     static ErrorOr<UserDataFile> create(std::string_view magic, const std::vector<uint8_t>& data);
-    static ErrorOr<UserDataFile> deserialize(std::istream& stream);
+    static ErrorOr<UserDataFile> deserialize(BinaryStreamReader& reader);
 
-    std::vector<uint8_t> serialize() const;
+    void serialize(BinaryStreamWriter& writer) const;
     void serialize(std::ostream& ostream) const;
 
-    struct Header {
-        char magic[4];
-        int unk = 0x00291222;
-        int deflatedSize;
-        int inflatedSize;
-    } header;
-
     std::vector<uint8_t> data;
+    std::string type;
 
 private:
+    struct Header {
+        char magic[4];
+        int unk;
+        int deflatedSize;
+        int inflatedSize;
+    };
+
     UserDataFile() = default;
 };
 
 class UserDataContainer {
-    MAKE_NONCOPYABLE(UserDataContainer);
-
 public:
-    UserDataContainer(UserDataContainer&&) noexcept            = default;
-    UserDataContainer& operator=(UserDataContainer&&) noexcept = default;
-
-    static ErrorOr<UserDataContainer> deserialize(const std::vector<uint8_t>& data);
-
-    std::vector<uint8_t> serialize() const;
+    static ErrorOr<UserDataContainer> deserialize(BinaryStreamReader& reader);
+    void serialize(BinaryStreamWriter& writer) const;
 
     void insertFile(UserDataFile&& file);
     void insertFile(const UserDataFile& file);
@@ -50,8 +40,6 @@ public:
     const std::vector<UserDataFile>& extraFiles() const;
 
 private:
-    UserDataContainer() = default;
-
     uint8_t IV[0x10]{};
     struct Header {
         int size; // size of header and data without the size parameter and final padding

@@ -7,23 +7,20 @@
 #include <span>
 #include <spanstream>
 
-ErrorOr<UserDataContainer> UserDataContainer::deserialize(const std::vector<uint8_t>& data) {
-    std::ispanstream inputStream{ { (char*)data.data(), data.size() }, std::ios::in | std::ios::binary };
-
+ErrorOr<UserDataContainer> UserDataContainer::deserialize(BinaryStreamReader& reader) {
     UserDataContainer container;
-    inputStream.read((char*)container.IV, sizeof(IV));
+    reader.read(container.IV, sizeof(IV));
     static_assert(std::is_trivially_copy_assignable_v<Header>);
-    inputStream.read((char*)&container.header, sizeof(Header));
+    container.header = reader.read<Header>();
 
     for(int i = 0; i < container.header.fileCount; ++i) {
-        auto fileOr = UserDataFile::deserialize(inputStream);
+        auto fileOr = UserDataFile::deserialize(reader);
         PROPAGATE_IF_ERROR(fileOr);
         container.files_.push_back(std::move(fileOr).value());
     }
-    int extraFileCount{};
-    inputStream.read((char*)&extraFileCount, sizeof(extraFileCount));
+    int extraFileCount = reader.read<int>();
     for(int i = 0; i < extraFileCount; ++i) {
-        auto fileOr = UserDataFile::deserialize(inputStream);
+        auto fileOr = UserDataFile::deserialize(reader);
         PROPAGATE_IF_ERROR(fileOr);
         container.extraFiles_.push_back(std::move(fileOr).value());
     }
@@ -31,31 +28,47 @@ ErrorOr<UserDataContainer> UserDataContainer::deserialize(const std::vector<uint
     return container;
 }
 
-std::vector<uint8_t> UserDataContainer::serialize() const {
-    size_t finalSize = sizeof(IV) + sizeof(header.size) + header.size;
-    if(finalSize % 0x10)
-        finalSize = finalSize + 0x10 - (finalSize % 0x10); // Round up to next multiple of 0x10
+namespace {
+    class MD5WriteObserver : public IReadWriteObserver {
+    public:
+        void observe(const uint8_t* data, int64_t count) override {
+            md5.update(data, count);
+        }
 
-    std::vector<uint8_t> buffer(finalSize, 0);
+        auto finalize() {
+            return md5.finalize();
+        }
 
-    std::ospanstream ostream({ (char*)buffer.data(), buffer.size() }, std::ios::out | std::ios::binary);
-    ostream.write((char*)IV, sizeof(IV));
-    ostream.write((char*)&header, sizeof(Header));
+    private:
+        MD5 md5;
+    };
 
-    for(const auto& file : files_)
-        file.serialize(ostream);
+} // namespace
+
+void UserDataContainer::serialize(BinaryStreamWriter& writer) const {
+    auto md5Observer = std::make_unique<MD5WriteObserver>();
+
+    writer.write(IV);
+    writer.write(header.size);
+    writer.registerObserver(md5Observer.get());
+    writer.write((int8_t*)&header.unk1, sizeof(header) - sizeof(header.size)); // Bit of an awkward write but we have to sandwich the md5 in here
+
+    for(const auto& file : files_) {
+        file.serialize(writer);
+    }
 
     int extraFilesCount = extraFiles_.size();
-    ostream.write((char*)&extraFilesCount, sizeof(extraFilesCount));
+    writer.write(extraFilesCount);
     for(const auto& file : extraFiles_)
-        file.serialize(ostream);
+        file.serialize(writer);
 
-    // checksum
-    auto checksum = md5Checksum(buffer.data() + 0x14, header.size - 0x10);
-    ostream.seekp(sizeof(header.size) + header.size);
-    ostream.write((char*)checksum.data(), sizeof(checksum));
+    writer.seekWithPad(sizeof(header.size) + header.size);
 
-    return buffer;
+    writer.unregisterObeserver(md5Observer.get());
+    auto checksum = md5Observer->finalize();
+    writer.write(checksum);
+
+    writer.padToNextMultipleOf(0x10);
 }
 
 void UserDataContainer::insertFile(UserDataFile&& file) {
@@ -81,26 +94,34 @@ const std::vector<UserDataFile>& UserDataContainer::extraFiles() const {
     return extraFiles_;
 }
 
-ErrorOr<UserDataFile> UserDataFile::deserialize(std::istream& stream) {
+ErrorOr<UserDataFile> UserDataFile::deserialize(BinaryStreamReader& reader) {
     UserDataFile file;
-    static_assert(std::is_trivially_copy_assignable_v<Header>);
-    stream.read((char*)&file.header, sizeof(Header));
-    file.data.resize(file.header.deflatedSize);
-    stream.read((char*)file.data.data(), file.data.size());
+
+    auto header = reader.read<Header>();
+    assert(header.unk == 0x00291222);
+    assert(header.deflatedSize);
+    assert(header.inflatedSize);
+
+    file.type = std::string(std::begin(header.magic), std::end(header.magic));
+
+    std::vector<uint8_t> deflatedData(header.deflatedSize);
+    reader.read(deflatedData.data(), deflatedData.size());
+
+    file.data = inflate(deflatedData.data(), deflatedData.size(), header.inflatedSize);
 
     return file;
 }
 
-std::vector<uint8_t> UserDataFile::serialize() const {
-    std::vector<uint8_t> result(sizeof(Header) + data.size());
-    std::memcpy(result.data(), reinterpret_cast<const uint8_t*>(&header), sizeof(Header));
-    std::memcpy(result.data() + sizeof(Header), data.data(), data.size());
-    return result;
-}
+void UserDataFile::serialize(BinaryStreamWriter& writer) const {
+    Header header;
+    std::copy(type.data(), type.data() + sizeof(header.magic), std::begin(header.magic));
+    header.unk          = 0x00291222;
+    auto deflatedData   = deflate(data.data(), data.size());
+    header.deflatedSize = deflatedData.size();
+    header.inflatedSize = data.size();
 
-void UserDataFile::serialize(std::ostream& ostream) const {
-    ostream.write((char*)&header, sizeof(Header));
-    ostream.write((char*)data.data(), data.size());
+    writer.write(header);
+    writer.write(deflatedData.data(), deflatedData.size());
 }
 
 ErrorOr<UserDataFile> UserDataFile::create(std::string_view magic, const std::vector<uint8_t>& data) {
@@ -108,10 +129,8 @@ ErrorOr<UserDataFile> UserDataFile::create(std::string_view magic, const std::ve
         return Error{ "Invalid magic value. Has to be 4 character string without terminator" };
 
     UserDataFile file;
-    std::memcpy(&file.header.magic, magic.data(), magic.size());
-    file.header.inflatedSize = data.size();
-    file.data                = deflate(data.data(), data.size());
-    file.header.deflatedSize = file.data.size();
+    file.type = magic;
+    file.data = data;
 
     return file;
 }
