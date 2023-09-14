@@ -1,7 +1,7 @@
 #include "Checksum.h"
 #include "md5.h"
 
-std::array<uint8_t, 0x10> MD5::checksum(const uint8_t* data, int64_t size) {
+std::array<uint8_t, 0x10> libEmblem::MD5::checksum(const uint8_t* data, int64_t size) {
     MD5Context ctx;
     md5Init(&ctx);
     md5Update(&ctx, const_cast<uint8_t*>(data), size); // This md5 library is sussy..
@@ -12,7 +12,7 @@ std::array<uint8_t, 0x10> MD5::checksum(const uint8_t* data, int64_t size) {
     return result;
 };
 
-class MD5::MD5Impl {
+class libEmblem::MD5::MD5Impl {
 public:
     MD5Impl() {
         md5Init(&ctx);
@@ -33,15 +33,15 @@ private:
     MD5Context ctx;
 };
 
-MD5::MD5() : impl(std::make_unique<MD5Impl>()) {
+libEmblem::MD5::MD5() : impl(std::make_unique<MD5Impl>()) {
 }
 
-MD5::~MD5() = default;
+libEmblem::MD5::~MD5() = default;
 
-void MD5::update(uint8_t* data, int64_t size) {
+void libEmblem::MD5::update(uint8_t* data, int64_t size) {
     impl->update(data, size);
 }
 
-std::array<uint8_t, 0x10> MD5::finalize() {
+std::array<uint8_t, 0x10> libEmblem::MD5::finalize() {
     return impl->finalize();
 }

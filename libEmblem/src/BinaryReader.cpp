@@ -1,7 +1,8 @@
 #include "BinaryReader.h"
 #include "Serialization.h"
 
-BinaryStreamReaderBase::BinaryStreamReaderBase(std::basic_istream<uint8_t>& stream, int exceptions) : stream(stream) {
+libEmblem::BinaryStreamReaderBase::BinaryStreamReaderBase(std::basic_istream<uint8_t>& stream, int exceptions)
+: stream(stream) {
     assert(stream.good());
     exceptionMask = stream.exceptions();
     if(exceptions != -1)
@@ -10,36 +11,36 @@ BinaryStreamReaderBase::BinaryStreamReaderBase(std::basic_istream<uint8_t>& stre
         stream.exceptions(std::ios::failbit | std::ios::badbit | std::ios::eofbit);
 }
 
-BinaryStreamReader::BinaryStreamReader(std::basic_istream<uint8_t>& stream, int exceptions)
+libEmblem::BinaryStreamReader::BinaryStreamReader(std::basic_istream<uint8_t>& stream, int exceptions)
 : BinaryStreamReaderBase(stream, exceptions) {
 }
 
-BinaryStreamReaderBase::~BinaryStreamReaderBase() {
+libEmblem::BinaryStreamReaderBase::~BinaryStreamReaderBase() {
     if(stream.bad()) // Restore exceptions only if the stream isn't dead
         stream.exceptions(exceptionMask);
 }
 
-void BinaryStreamReaderBase::seek(std::streampos pos) {
+void libEmblem::BinaryStreamReaderBase::seek(std::streampos pos) {
     stream.seekg(pos);
     assert(stream.good());
 }
 
-void BinaryStreamReaderBase::seek(std::streamoff off, std::ios_base::seekdir way) {
+void libEmblem::BinaryStreamReaderBase::seek(std::streamoff off, std::ios_base::seekdir way) {
     stream.seekg(off, way);
     assert(stream.good());
 }
 
-std::streampos BinaryStreamReaderBase::tell() const {
+std::streampos libEmblem::BinaryStreamReaderBase::tell() const {
     auto pos = stream.tellg();
     assert(stream.good());
     return pos;
 }
 
-BinaryStreamReaderBase::operator bool() {
+libEmblem::BinaryStreamReaderBase::operator bool() {
     return stream.good();
 }
 
-bool BinaryStreamReaderBase::headAtEof() {
+bool libEmblem::BinaryStreamReaderBase::headAtEof() {
     auto ex = stream.exceptions();
     stream.exceptions(0);
     uint8_t c;
@@ -52,7 +53,7 @@ bool BinaryStreamReaderBase::headAtEof() {
     return isEof;
 }
 
-std::string BinaryStreamReader::readCString() {
+std::string libEmblem::BinaryStreamReader::readCString() {
     std::string str;
     while(true) {
         char c = read<char>();
@@ -63,7 +64,7 @@ std::string BinaryStreamReader::readCString() {
     return str;
 }
 
-std::wstring BinaryStreamReader::readCWString() {
+std::wstring libEmblem::BinaryStreamReader::readCWString() {
     std::wstring str;
     while(true) {
         wchar_t c = read<wchar_t>();
@@ -74,16 +75,16 @@ std::wstring BinaryStreamReader::readCWString() {
     return str;
 }
 
-void BinaryStreamReaderBase::read(uint8_t* v, int64_t count) {
+void libEmblem::BinaryStreamReaderBase::read(uint8_t* v, int64_t count) {
     stream.read(v, count);
     assert(stream.good());
 }
 
-void BinaryStreamReaderBase::registerObserver(IReadWriteObserver* observer) {
+void libEmblem::BinaryStreamReaderBase::registerObserver(IReadWriteObserver* observer) {
     observers.push_back(observer);
 }
 
-void BinaryStreamReaderBase::unregisterObeserver(IReadWriteObserver* observer) {
+void libEmblem::BinaryStreamReaderBase::unregisterObeserver(IReadWriteObserver* observer) {
     auto it = std::find(observers.begin(), observers.end(), observer);
     if(it != observers.end())
         observers.erase(it);

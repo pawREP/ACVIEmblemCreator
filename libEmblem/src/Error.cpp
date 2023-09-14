@@ -1,10 +1,10 @@
 #include "Error.h"
 
-Error::Error(std::string_view stringView) : msg(stringView){};
+libEmblem::Error::Error(std::string_view stringView) : msg(stringView){};
 
-Error::Error(const std::string& str) : msg(str) {
+libEmblem::Error::Error(const std::string& str) : msg(str) {
 }
 
-const std::string& Error::string() {
+const std::string& libEmblem::Error::string() {
     return msg;
 };

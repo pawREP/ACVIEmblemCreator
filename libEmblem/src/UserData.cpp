@@ -7,7 +7,7 @@
 #include <span>
 #include <spanstream>
 
-ErrorOr<UserDataContainer> UserDataContainer::deserialize(BinaryStreamReader& reader) {
+libEmblem::ErrorOr<libEmblem::UserDataContainer> libEmblem::UserDataContainer::deserialize(BinaryStreamReader& reader) {
     UserDataContainer container;
     reader.read(container.IV, sizeof(IV));
     static_assert(std::is_trivially_copy_assignable_v<Header>);
@@ -29,7 +29,7 @@ ErrorOr<UserDataContainer> UserDataContainer::deserialize(BinaryStreamReader& re
 }
 
 namespace {
-    class MD5WriteObserver : public IReadWriteObserver {
+    class MD5WriteObserver : public libEmblem::IReadWriteObserver {
     public:
         void observe(const uint8_t* data, int64_t count) override {
             md5.update(data, count);
@@ -40,12 +40,12 @@ namespace {
         }
 
     private:
-        MD5 md5;
+        libEmblem::MD5 md5;
     };
 
 } // namespace
 
-void UserDataContainer::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::UserDataContainer::serialize(BinaryStreamWriter& writer) const {
     auto md5Observer = std::make_unique<MD5WriteObserver>();
 
     writer.write(IV);
@@ -71,30 +71,30 @@ void UserDataContainer::serialize(BinaryStreamWriter& writer) const {
     writer.padToNextMultipleOf(0x10);
 }
 
-void UserDataContainer::insertFile(UserDataFile&& file) {
+void libEmblem::UserDataContainer::insertFile(UserDataFile&& file) {
     files_.push_back(std::move(file));
     header.fileCount++;
 }
 
-void UserDataContainer::insertFile(const UserDataFile& file) {
+void libEmblem::UserDataContainer::insertFile(const UserDataFile& file) {
     files_.push_back(file);
     header.fileCount++;
 }
 
-void UserDataContainer::eraseFile(int64_t index) {
+void libEmblem::UserDataContainer::eraseFile(int64_t index) {
     files_.erase(files_.begin() + index);
     header.fileCount--;
 }
 
-const std::vector<UserDataFile>& UserDataContainer::files() const {
+const std::vector<libEmblem::UserDataFile>& libEmblem::UserDataContainer::files() const {
     return files_;
 }
 
-const std::vector<UserDataFile>& UserDataContainer::extraFiles() const {
+const std::vector<libEmblem::UserDataFile>& libEmblem::UserDataContainer::extraFiles() const {
     return extraFiles_;
 }
 
-ErrorOr<UserDataFile> UserDataFile::deserialize(BinaryStreamReader& reader) {
+libEmblem::ErrorOr<libEmblem::UserDataFile> libEmblem::UserDataFile::deserialize(BinaryStreamReader& reader) {
     UserDataFile file;
 
     auto header = reader.read<Header>();
@@ -112,7 +112,7 @@ ErrorOr<UserDataFile> UserDataFile::deserialize(BinaryStreamReader& reader) {
     return file;
 }
 
-void UserDataFile::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::UserDataFile::serialize(BinaryStreamWriter& writer) const {
     Header header;
     std::copy(type.data(), type.data() + sizeof(header.magic), std::begin(header.magic));
     header.unk          = 0x00291222;
@@ -124,7 +124,8 @@ void UserDataFile::serialize(BinaryStreamWriter& writer) const {
     writer.write(deflatedData.data(), deflatedData.size());
 }
 
-ErrorOr<UserDataFile> UserDataFile::create(std::string_view magic, const std::vector<uint8_t>& data) {
+libEmblem::ErrorOr<libEmblem::UserDataFile>
+libEmblem::UserDataFile::create(std::string_view magic, const std::vector<uint8_t>& data) {
     if(magic.size() != 4)
         return Error{ "Invalid magic value. Has to be 4 character string without terminator" };
 

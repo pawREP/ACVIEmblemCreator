@@ -5,6 +5,8 @@
 #include <string>
 #include <string_view>
 
+namespace libEmblem {
+
 #define UNWRAP_OR_PROPAGATE_(expectedValue, expected, varName) \
     auto varName = expected;                                   \
     if(!varName)                                               \
@@ -27,32 +29,34 @@
 
 #define PROPAGATE_IF_ERROR(expected) PROPAGATE_IF_ERROR_(expected, ANONYMOUS)
 
-class Error {
-public:
-    template <int N>
-    Error(const char (&literal)[N]) : msg(literal){};
+    class Error {
+    public:
+        template <int N>
+        Error(const char (&literal)[N]) : msg(literal){};
 
-    Error(std::string_view stringView);
+        Error(std::string_view stringView);
 
-    Error(const std::string& str);
+        Error(const std::string& str);
 
-    template <typename... Args>
-    Error(const std::format_string<Args...> formatString, Args... args) {
-        msg = std::format(formatString, std::forward<Args>(args)...);
-    }
+        template <typename... Args>
+        Error(const std::format_string<Args...> formatString, Args... args) {
+            msg = std::format(formatString, std::forward<Args>(args)...);
+        }
 
-    auto operator<=>(const Error&) const noexcept = default;
+        auto operator<=>(const Error&) const noexcept = default;
 
-    const std::string& string();
+        const std::string& string();
 
-    template <typename T>
-    operator std::expected<T, Error>() const noexcept {
-        return std::unexpected{ *this };
-    }
+        template <typename T>
+        operator std::expected<T, Error>() const noexcept {
+            return std::unexpected{ *this };
+        }
 
-private:
-    std::string msg;
-};
+    private:
+        std::string msg;
+    };
 
-template <typename T = void, typename E = Error>
-using ErrorOr = std::expected<T, E>;
+    template <typename T = void, typename E = Error>
+    using ErrorOr = std::expected<T, E>;
+
+} // namespace libEmblem

@@ -1,7 +1,8 @@
 #include "BinaryWriter.h"
 #include "Serialization.h"
 
-BinaryStreamWriterBase::BinaryStreamWriterBase(std::basic_ostream<uint8_t>& stream, int exceptions) : stream(stream) {
+libEmblem::BinaryStreamWriterBase::BinaryStreamWriterBase(std::basic_ostream<uint8_t>& stream, int exceptions)
+: stream(stream) {
     assert(stream.good());
     exceptionMask = stream.exceptions();
     if(exceptions != -1)
@@ -10,22 +11,22 @@ BinaryStreamWriterBase::BinaryStreamWriterBase(std::basic_ostream<uint8_t>& stre
         stream.exceptions(std::ios::failbit | std::ios::badbit | std::ios::eofbit);
 }
 
-BinaryStreamWriterBase ::~BinaryStreamWriterBase() {
+libEmblem::BinaryStreamWriterBase ::~BinaryStreamWriterBase() {
     if(stream.bad()) // Restore exceptions only if the stream isn't dead
         stream.exceptions(exceptionMask);
 }
 
-void BinaryStreamWriterBase::seek(std::streampos pos) {
+void libEmblem::BinaryStreamWriterBase::seek(std::streampos pos) {
     stream.seekp(pos);
     assert(stream.good());
 }
 
-void BinaryStreamWriterBase::seek(std::streamoff off, std::ios_base::seekdir way) {
+void libEmblem::BinaryStreamWriterBase::seek(std::streamoff off, std::ios_base::seekdir way) {
     stream.seekp(off, way);
     assert(stream.good());
 }
 
-void BinaryStreamWriterBase::seekWithPad(std::streampos pos) {
+void libEmblem::BinaryStreamWriterBase::seekWithPad(std::streampos pos) {
     auto cur = tell();
     assert(pos >= cur && "Tried to seek backwards with padding");
 
@@ -37,17 +38,17 @@ void BinaryStreamWriterBase::seekWithPad(std::streampos pos) {
         write(buf, 1);
 }
 
-std::streampos BinaryStreamWriterBase::tell() const {
+std::streampos libEmblem::BinaryStreamWriterBase::tell() const {
     auto pos = stream.tellp();
     assert(stream.good());
     return pos;
 }
 
-BinaryStreamWriterBase::operator bool() {
+libEmblem::BinaryStreamWriterBase::operator bool() {
     return stream.good();
 }
 
-void BinaryStreamWriterBase::write(const uint8_t* data, int64_t count) {
+void libEmblem::BinaryStreamWriterBase::write(const uint8_t* data, int64_t count) {
     for(auto observer : observers)
         observer->observe(data, count);
 
@@ -55,21 +56,21 @@ void BinaryStreamWriterBase::write(const uint8_t* data, int64_t count) {
     assert(stream.good());
 }
 
-void BinaryStreamWriterBase::registerObserver(IReadWriteObserver* observer) {
+void libEmblem::BinaryStreamWriterBase::registerObserver(IReadWriteObserver* observer) {
     observers.push_back(observer);
 }
 
-void BinaryStreamWriterBase::unregisterObeserver(IReadWriteObserver* observer) {
+void libEmblem::BinaryStreamWriterBase::unregisterObeserver(IReadWriteObserver* observer) {
     auto it = std::find(observers.begin(), observers.end(), observer);
     if(it != observers.end())
         observers.erase(it);
 }
 
-BinaryStreamWriter::BinaryStreamWriter(std::basic_ostream<uint8_t>& stream, int exceptions)
+libEmblem::BinaryStreamWriter::BinaryStreamWriter(std::basic_ostream<uint8_t>& stream, int exceptions)
 : BinaryStreamWriterBase(stream, exceptions) {
 }
 
-void BinaryStreamWriter::padToNextMultipleOf(int32_t alignment) {
+void libEmblem::BinaryStreamWriter::padToNextMultipleOf(int32_t alignment) {
     if(tell() / alignment == 0)
         return;
 

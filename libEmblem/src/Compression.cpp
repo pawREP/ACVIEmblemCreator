@@ -1,7 +1,7 @@
 #include "Compression.h"
 #include "zlib.h"
 
-std::vector<uint8_t> deflate(const uint8_t* data, int32_t inflatedSize) {
+std::vector<uint8_t> libEmblem::deflate(const uint8_t* data, int32_t inflatedSize) {
     std::vector<uint8_t> result;
     result.resize(inflatedSize); // TODO: Could probably fail in some extreme cases, like 1 byte input.
 
@@ -24,7 +24,7 @@ std::vector<uint8_t> deflate(const uint8_t* data, int32_t inflatedSize) {
     return result;
 }
 
-std::vector<uint8_t> inflate(const uint8_t* data, int32_t deflatedSize, int32_t inflatedSize) {
+std::vector<uint8_t> libEmblem::inflate(const uint8_t* data, int32_t deflatedSize, int32_t inflatedSize) {
     std::vector<uint8_t> result;
     result.resize(inflatedSize);
 

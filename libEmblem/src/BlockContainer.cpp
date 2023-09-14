@@ -4,12 +4,12 @@
 #include "Error.h"
 #include <vector>
 
-ErrorOr<BlockContainer> BlockContainer::deserialize(BinaryStreamReader& reader) {
+libEmblem::ErrorOr<libEmblem::BlockContainer> libEmblem::BlockContainer::deserialize(BinaryStreamReader& reader) {
     BlockContainer container;
     try {
         bool firstBlock = true;
         while(true) {
-            auto name = reader.readStringFromFixedLengthBuffer<0x10>();
+            auto name = reader.readCStringFromFixedLengthBuffer<0x10>();
             auto size = reader.read<uint32_t>();
             auto unk  = reader.read<uint32_t>();
             reader.readExpected<uint64_t>(0);
@@ -38,7 +38,7 @@ ErrorOr<BlockContainer> BlockContainer::deserialize(BinaryStreamReader& reader) 
     return container;
 }
 
-void BlockContainer::serialize(BinaryStreamWriter& writer) {
+void libEmblem::BlockContainer::serialize(BinaryStreamWriter& writer) {
     std::string begin = "---- begin ----";
     std::string end   = "----  end  ----";
     writer.write(begin);
@@ -60,19 +60,19 @@ void BlockContainer::serialize(BinaryStreamWriter& writer) {
     writer.write<uint64_t>(0);
 }
 
-const std::vector<uint8_t>* BlockContainer::getBlockData(const std::string& name) {
+const std::vector<uint8_t>* libEmblem::BlockContainer::getBlockData(const std::string& name) {
     auto it = std::find_if(blocks.begin(), blocks.end(), [name](const auto& pair) { return pair.first == name; });
     if(it == blocks.end())
         return nullptr;
     return &it->second;
 }
 
-void BlockContainer::insert(const std::string& name, const std::vector<uint8_t>& data) {
+void libEmblem::BlockContainer::insert(const std::string& name, const std::vector<uint8_t>& data) {
     std::vector<uint8_t> data_{ data };
     blocks.push_back({ name, std::move(data_) });
 }
 
-void BlockContainer::insert(const std::string& name, const uint8_t* data, int64_t size) {
+void libEmblem::BlockContainer::insert(const std::string& name, const uint8_t* data, int64_t size) {
     std::vector<uint8_t> data_{ data, data + size };
     blocks.push_back({ name, std::move(data_) });
 }

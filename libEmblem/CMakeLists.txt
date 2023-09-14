@@ -16,19 +16,9 @@ file(GLOB SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/zlib)
 get_target_property(LIBA_INCLUDES zlib INCLUDE_DIRECTORIES)
 
-option(LIBEMBLEM_BUILD_STATIC_LIB "Build static library" FALSE)
+add_library(libEmblem ${SRC_FILES})
+target_compile_definitions(libEmblem PRIVATE LIB_EMBLEM)
+target_include_directories(libEmblem PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(libEmblem PRIVATE zlib)
+target_include_directories(libEmblem PRIVATE ${LIBA_INCLUDES})
 
-if(LIBEMBLEM_BUILD_STATIC_LIB)
-    add_library(libEmblem ${SRC_FILES})
-
-    target_compile_definitions(libEmblem PRIVATE LIB_EMBLEM)
-    target_include_directories(libEmblem PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(libEmblem PRIVATE zlib)
-    target_include_directories(libEmblem PRIVATE ${LIBA_INCLUDES})
-endif()
-
-add_executable(EmblemImporter ${SRC_FILES})
-
-target_include_directories(EmblemImporter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(EmblemImporter PRIVATE zlib)
-target_include_directories(EmblemImporter PRIVATE ${LIBA_INCLUDES})

@@ -1,12 +1,11 @@
 #include "Emblem.h"
 #include "BlockContainer.h"
 #include "Hash.h"
-#include "json.h"
 #include <span>
 #include <spanstream>
 #include <Windows.h>
 
-Image Image::deserialize(BinaryStreamReader& reader) {
+libEmblem::Image libEmblem::Image::deserialize(BinaryStreamReader& reader) {
     Image image;
     reader.readExpected<short>(0);
     auto layerCount = reader.read<short>();
@@ -17,14 +16,14 @@ Image Image::deserialize(BinaryStreamReader& reader) {
     return image;
 }
 
-void Image::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::Image::serialize(BinaryStreamWriter& writer) const {
     writer.write<short>(0);
     writer.write<short>(layers.size());
     for(const auto& layer : layers)
         serializeLayer(writer, layer);
 }
 
-Image::Group Image::deserializeGroup(BinaryStreamReader& reader) {
+libEmblem::Image::Group libEmblem::Image::deserializeGroup(BinaryStreamReader& reader) {
     Group group;
     group.data = reader.read<GroupData>();
     if((group.data.decalId & 0x3F00) == 0x3F00) {
@@ -37,7 +36,7 @@ Image::Group Image::deserializeGroup(BinaryStreamReader& reader) {
     return group;
 }
 
-Image::Layer Image::deserializeLayer(BinaryStreamReader& reader) {
+libEmblem::Image::Layer libEmblem::Image::deserializeLayer(BinaryStreamReader& reader) {
     Layer layer;
 
     reader.readExpected<short>(3);
@@ -47,7 +46,7 @@ Image::Layer Image::deserializeLayer(BinaryStreamReader& reader) {
     return layer;
 }
 
-void Image::serializeGroup(BinaryStreamWriter& writer, const Group& group) const {
+void libEmblem::Image::serializeGroup(BinaryStreamWriter& writer, const Group& group) const {
     writer.write(group.data);
     if(group.children.size())
         writer.write((int)group.children.size());
@@ -55,41 +54,41 @@ void Image::serializeGroup(BinaryStreamWriter& writer, const Group& group) const
         serializeGroup(writer, child);
 }
 
-void Image::serializeLayer(BinaryStreamWriter& writer, const Layer& layer) const {
+void libEmblem::Image::serializeLayer(BinaryStreamWriter& writer, const Layer& layer) const {
     writer.write<short>(3);
     writer.write<short>(1);
     serializeGroup(writer, layer.group);
 }
 
-Category& Category::operator=(uint8_t category) {
+libEmblem::Category& libEmblem::Category::operator=(uint8_t category) {
     this->category = category;
     return *this;
 }
 
-CreatorID& CreatorID::operator=(int64_t steamdId) {
+libEmblem::CreatorID& libEmblem::CreatorID::operator=(int64_t steamdId) {
     this->steamId = steamId;
     return *this;
 }
 
-UgcID& UgcID::operator=(const wchar_t* shareCode) {
+libEmblem::UgcID& libEmblem::UgcID::operator=(const wchar_t* shareCode) {
     this->shareCode = shareCode;
     return *this;
 }
 
-DateTime DateTime::deserialize(BinaryStreamReader& reader) {
+libEmblem::DateTime libEmblem::DateTime::deserialize(BinaryStreamReader& reader) {
     DateTime datetime;
     datetime.filetime = reader.read<FILETIME>();
     reader.read<uint64_t>();
     return datetime;
 }
 
-DateTime DateTime::fromCurrentTime() {
+libEmblem::DateTime libEmblem::DateTime::fromCurrentTime() {
     DateTime dateTime;
     GetSystemTimeAsFileTime(&dateTime.filetime);
     return dateTime;
 }
 
-void DateTime::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::DateTime::serialize(BinaryStreamWriter& writer) const {
     SYSTEMTIME systemTime;
     FileTimeToSystemTime(&filetime, &systemTime);
 
@@ -99,7 +98,7 @@ void DateTime::serialize(BinaryStreamWriter& writer) const {
     writer.write(pst);
 }
 
-constexpr uint64_t DateTime::packSystemTime(const SYSTEMTIME& systemTime) {
+constexpr uint64_t libEmblem::DateTime::packSystemTime(const SYSTEMTIME& systemTime) {
     // clang-format off
         uint64_t cst{};
         cst = (uint64_t)systemTime.wSecond       & 0x3F;
@@ -114,45 +113,45 @@ constexpr uint64_t DateTime::packSystemTime(const SYSTEMTIME& systemTime) {
     return cst;
 }
 
-Category Category::deserialize(BinaryStreamReader& reader) {
+libEmblem::Category libEmblem::Category::deserialize(BinaryStreamReader& reader) {
     Category category;
     category.category = reader.read<int8_t>();
     return category;
 }
 
-void Category::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::Category::serialize(BinaryStreamWriter& writer) const {
     writer.write(category);
 }
 
-CreatorID CreatorID::deserialize(BinaryStreamReader& reader) {
+libEmblem::CreatorID libEmblem::CreatorID::deserialize(BinaryStreamReader& reader) {
     CreatorID creatorId;
     creatorId.steamId = reader.read<int64_t>();
     return creatorId;
 }
 
-void CreatorID::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::CreatorID::serialize(BinaryStreamWriter& writer) const {
     writer.write(steamId);
 }
 
-UgcID UgcID::deserialize(BinaryStreamReader& reader) {
+libEmblem::UgcID libEmblem::UgcID::deserialize(BinaryStreamReader& reader) {
     UgcID ugcId;
-    ugcId.shareCode = reader.readWString();
+    ugcId.shareCode = reader.readCWString();
     return ugcId;
 }
 
-void UgcID::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::UgcID::serialize(BinaryStreamWriter& writer) const {
     writer.write(shareCode);
 }
 
-ErrorOr<EMBC> EMBC::deserialize(BinaryStreamReader& reader) {
+libEmblem::ErrorOr<libEmblem::EMBC> libEmblem::EMBC::deserialize(BinaryStreamReader& reader) {
     auto container = BlockContainer::deserialize(reader);
     if(!container)
         return std::unexpected{ container.error() };
 
     EMBC embc;
     for(const auto& block : container->blocks) {
-        std::basic_ispanstream<uint8_t> blockDataStream(std::span{ block.second.data(), block.second.size() });
-        BinaryStreamReader reader{ blockDataStream };
+        StreamView view{ block.second };
+        BinaryStreamReader& reader = view.reader;
 
         auto name = hash(block.first.c_str());
         switch(name) {
@@ -176,7 +175,7 @@ ErrorOr<EMBC> EMBC::deserialize(BinaryStreamReader& reader) {
     return embc;
 }
 
-void EMBC::serialize(BinaryStreamWriter& writer) const {
+void libEmblem::EMBC::serialize(BinaryStreamWriter& writer) const {
     BlockContainer container;
 
     container.insert(category.name, category);
