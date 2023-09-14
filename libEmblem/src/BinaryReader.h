@@ -2,21 +2,41 @@
 #include "Define.h"
 #include <cassert>
 #include <cinttypes>
+#include <cstdint>
 #include <istream>
+#include <vector>
 
-class BinaryStreamReader {
-    MAKE_NONCOPYABLE(BinaryStreamReader);
-    MAKE_NONMOVABLE(BinaryStreamReader);
+class IReadWriteObserver;
 
+class BinaryStreamReaderBase {
 public:
-    BinaryStreamReader(std::basic_istream<uint8_t>& stream, int expections = -1);
-    virtual ~BinaryStreamReader();
+    BinaryStreamReaderBase(std::basic_istream<uint8_t>& stream, int expections = -1);
+    virtual ~BinaryStreamReaderBase();
 
     void seek(std::streampos pos);
     void seek(std::streamoff off, std::ios_base::seekdir way);
     std::streampos tell() const;
     operator bool();
     bool headAtEof();
+
+    void read(uint8_t* v, int64_t count);
+
+    void registerObserver(IReadWriteObserver* observer);
+    void unregisterObeserver(IReadWriteObserver* observer);
+
+private:
+    std::vector<IReadWriteObserver*> observers;
+    std::basic_istream<uint8_t>& stream;
+    int exceptionMask;
+};
+
+class BinaryStreamReader : public BinaryStreamReaderBase {
+    MAKE_NONCOPYABLE(BinaryStreamReader);
+    MAKE_NONMOVABLE(BinaryStreamReader);
+
+public:
+    BinaryStreamReader(std::basic_istream<uint8_t>& stream, int expections = -1);
+    virtual ~BinaryStreamReader() = default;
 
     template <typename T>
     T read() {
@@ -25,9 +45,7 @@ public:
         static_assert(!std::is_pointer_v<T>);
 
         T v;
-        stream.read((uint8_t*)&v, sizeof(T));
-        assert(stream.good());
-
+        read(&v, 1);
         return v;
     }
 
@@ -35,9 +53,9 @@ public:
     void read(T* v, int64_t count) {
         static_assert(std::is_trivially_copyable_v<T>);
         static_assert(!std::is_pointer_v<T>);
+        static_assert(!std::is_const_v<T>);
 
-        stream.read((uint8_t*)v, count * sizeof(T));
-        assert(stream.good());
+        BinaryStreamReaderBase::read(reinterpret_cast<uint8_t*>(v), count * sizeof(T));
     }
 
     template <typename T>
@@ -69,8 +87,22 @@ public:
         seek(-count * (int64_t)sizeof(T), std::ios::cur);
     }
 
+    template <int length>
+    std::string readFixedLengthString() {
+        std::string str(length, ' ');
+        read(str.data(), length);
+        return str;
+    }
+
+    template <int length>
+    std::wstring readFixedLengthWString() {
+        std::wstring str(length, ' ');
+        read(str.data(), length);
+        return str;
+    }
+
     template <int maxLength>
-    std::string readStringFromFixedLengthBuffer() {
+    std::string readCStringFromFixedLengthBuffer() {
         char buf[maxLength];
         read(buf, maxLength);
         auto len = strnlen_s(buf, maxLength);
@@ -80,7 +112,7 @@ public:
     }
 
     template <int maxLength>
-    std::wstring readWStringFromFixedLengthBuffer() {
+    std::wstring readCWStringFromFixedLengthBuffer() {
         wchar_t buf[maxLength];
         read(buf, maxLength);
         auto len = wcsnlen_s(buf, maxLength);
@@ -89,10 +121,8 @@ public:
         return std::wstring{ buf };
     }
 
-    std::string readString();
-    std::wstring readWString();
+    std::string readCString();
+    std::wstring readCWString();
+};
 
-private:
-    std::basic_istream<uint8_t>& stream;
-    int exceptionMask;
 };
