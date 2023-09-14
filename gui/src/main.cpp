@@ -1,6 +1,7 @@
 #include "AsyncTask.h"
 #include "BatchRenderer.h"
 #include "ChromaKey.h"
+#include "EmblemImport.h"
 #include "Generator.h"
 #include "ImageLoader.h"
 #include "PlatformHelpers.h"
@@ -9,7 +10,6 @@
 #include "backends/imgui_impl_win32.h"
 #include "imgui.h"
 #include "json.h"
-#include "libEmblem.h"
 #include <Windows.h>
 #include <cassert>
 #include <d3d11.h>
@@ -21,6 +21,8 @@
 #pragma comment(lib, "d3d11")
 
 using Microsoft::WRL::ComPtr;
+
+using namespace libEmblem;
 
 namespace {
 
@@ -59,7 +61,7 @@ namespace {
         ShapeGeneratorOptions generatorOptions{};
     } guiContext;
 
-    AsyncTask<int(void)> exportTask;
+    AsyncTask<ErrorOr<>(void)> exportTask;
 
     std::vector<Prim> primitives;
     std::vector<int32_t> visiblePrimitives;
@@ -405,10 +407,8 @@ int main(int arc, char* argv[]) {
 
         if(exportTask.ready()) {
             auto result = exportTask.get();
-            if(result) {
-                auto errorMessage = embGetLastError();
-                setStatus(errorMessage);
-                delete[] errorMessage;
+            if(!result) {
+                setStatus(result.error().string().c_str());
             } else {
                 setStatus("Success!");
             }
@@ -621,11 +621,8 @@ namespace {
         ofs << finalJson;
         ofs.close();
 
-        auto emblemExportProc = [sl2Path, jsonPath]() -> int {
-            const wchar_t* paths[2];
-            paths[0] = jsonPath.c_str();
-            paths[1] = sl2Path.c_str();
-            auto ret = embImportEmblems(_countof(paths), paths);
+        auto emblemExportProc = [sl2Path, jsonPath]() -> ErrorOr<> {
+            auto ret = importEmblems(sl2Path, jsonPath);
             if(std::filesystem::exists(jsonPath))
                 std::filesystem::remove(jsonPath);
             return ret;
