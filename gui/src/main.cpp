@@ -61,7 +61,7 @@ namespace {
         ShapeGeneratorOptions generatorOptions{};
     } guiContext;
 
-    AsyncTask<ErrorOr<>(void)> exportTask;
+    AsyncTask<ErrorOr<>(void)> asyncTask;
 
     std::vector<Prim> primitives;
     std::vector<int32_t> visiblePrimitives;
@@ -81,9 +81,9 @@ namespace {
     std::vector<Prim> loadPrimitivesfromJson(const nlohmann::json& json);
     nlohmann::json loadJsonFromFile(const wchar_t* path);
     nlohmann::json loadJsonFromString(const std::string& jsonString);
-    void exportEmblemToGame();
+    void launchEmblemImportTask();
+    void launchEmblemTransferTask();
     void setStatus(const char* status);
-
 
 } // namespace
 
@@ -402,11 +402,18 @@ int main(int arc, char* argv[]) {
 
         ImGui::PushStyleColor(ImGuiCol_Button, { 0.81f, 0.35f, 0.32f, 1.f });
         if(ImGui::Button("Export to Game"))
-            exportEmblemToGame();
+            launchEmblemImportTask();
         ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if(ImGui::Button("Transfer Downloaded Emblems"))
+            launchEmblemTransferTask();
+        if(ImGui::BeginItemTooltip()) {
+            ImGui::SetTooltip("Copies all downloaded Emblems in the selected save file to the User2 tab for easy offline access and to enable editing");
+            ImGui::EndTooltip();
+        }
 
-        if(exportTask.ready()) {
-            auto result = exportTask.get();
+        if(asyncTask.ready()) {
+            auto result = asyncTask.get();
             if(!result) {
                 setStatus(result.error().string().c_str());
             } else {
@@ -597,8 +604,26 @@ namespace {
         return json;
     }
 
-    void exportEmblemToGame() {
-        if(exportTask.valid()) // Already exporting
+    void launchEmblemTransferTask() {
+        if(asyncTask.valid())
+            return;
+
+        std::filesystem::path sl2Path{ guiContext.sl2Path };
+        if(sl2Path.empty() || !std::filesystem::is_regular_file(sl2Path) || !sl2Path.has_extension() || sl2Path.extension() != ".sl2") {
+            setStatus("Invalid .sl2 path");
+            return;
+        }
+
+        auto transferTask = [sl2Path]() -> ErrorOr<> { return transferDownloadedEmblemsToUser2Tab(sl2Path); };
+
+        asyncTask = { std::move(transferTask) };
+        asyncTask.run();
+
+        setStatus("Exporting...");
+    }
+
+    void launchEmblemImportTask() {
+        if(asyncTask.valid()) // Already exporting
             return;
 
         if(currentJson.empty()) {
@@ -628,8 +653,8 @@ namespace {
             return ret;
         };
 
-        exportTask = { std::move(emblemExportProc) };
-        exportTask.run();
+        asyncTask = { std::move(emblemExportProc) };
+        asyncTask.run();
 
         setStatus("Exporting...");
     }
