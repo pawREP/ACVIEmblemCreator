@@ -97,11 +97,13 @@ namespace {
     }
 
     ErrorOr<void> packBinder(const std::filesystem::path& yabberPath, const std::filesystem::path& binderPath) {
-        return openProcessSync(yabberPath.wstring().c_str(), binderPath.wstring().c_str());
+        auto targetPath = std::wstring{ L"\"" } + binderPath.wstring() + std::wstring(L"\"");
+        return openProcessSync(yabberPath.wstring().c_str(), targetPath.c_str());
     }
 
     ErrorOr<void> unpackBinder(const std::filesystem::path& yabberPath, const std::filesystem::path& binderPath) {
-        auto result = openProcessSync(yabberPath.wstring().c_str(), binderPath.wstring().c_str());
+        auto targetPath = std::wstring{ L"\"" } + binderPath.wstring() + std::wstring(L"\"");
+        auto result     = openProcessSync(yabberPath.wstring().c_str(), targetPath.c_str());
         if(!result)
             return result.error();
 
