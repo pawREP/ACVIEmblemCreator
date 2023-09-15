@@ -129,13 +129,4 @@ namespace libEmblem {
         std::wstring readCWString();
     };
 
-    struct StreamView {
-        StreamView(const std::vector<uint8_t> vec)
-        : span(vec.data(), vec.size()), spanStream(span), reader(spanStream) {
-        }
-        std::span<const uint8_t> span;
-        std::basic_ispanstream<uint8_t> spanStream;
-        BinaryStreamReader reader;
-    };
-
 } // namespace libEmblem

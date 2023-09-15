@@ -1,9 +1,9 @@
 #include "Emblem.h"
 #include "BlockContainer.h"
 #include "Hash.h"
+#include <Windows.h>
 #include <span>
 #include <spanstream>
-#include <Windows.h>
 
 libEmblem::Image libEmblem::Image::deserialize(BinaryStreamReader& reader) {
     Image image;
@@ -150,8 +150,8 @@ libEmblem::ErrorOr<libEmblem::EMBC> libEmblem::EMBC::deserialize(BinaryStreamRea
 
     EMBC embc;
     for(const auto& block : container->blocks) {
-        StreamView view{ block.second };
-        BinaryStreamReader& reader = view.reader;
+        std::basic_ispanstream<uint8_t> ss{ std::span{ block.second.data(), block.second.size() } };
+        BinaryStreamReader reader(ss);
 
         auto name = hash(block.first.c_str());
         switch(name) {
