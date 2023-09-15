@@ -15,19 +15,9 @@ namespace libEmblem {
 
 #define UNWRAP_OR_PROPAGATE(expectedValue, expected) UNWRAP_OR_PROPAGATE_(expectedValue, expected, ANONYMOUS)
 
-#define PROPAGATE_IF_ERROR_(expected_, varName)                                       \
-    {                                                                                 \
-        if constexpr(std::_Is_specialization_v<decltype(expected_), std::expected>) { \
-            if(!expected_)                                                            \
-                return std::unexpected{ expected_.error() };                          \
-        } else {                                                                      \
-            auto varName = expected_;                                                 \
-            if(!varName)                                                              \
-                return std::unexpected{ varName.error() };                            \
-        }                                                                             \
-    }
-
-#define PROPAGATE_IF_ERROR(expected) PROPAGATE_IF_ERROR_(expected, ANONYMOUS)
+#define PROPAGATE_IF_ERROR(expected) \
+    if(!expected)                   \
+        return std::unexpected{ expected.error() };
 
     class Error {
     public:
